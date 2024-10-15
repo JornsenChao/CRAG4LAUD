@@ -2,8 +2,15 @@
 
 # dependencies
 /node_modules
+/server/node_modules
 /.pnp
 .pnp.js
+
+# package-lock
+package-lock.json
+
+# note
+note.md
 
 # testing
 /coverage
@@ -21,3 +28,6 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# credentials
+server/.env
