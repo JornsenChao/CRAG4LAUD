@@ -1,8 +1,11 @@
 # Your local RAG chatbot
 ## Tech stacks
 React (https://github.com/facebook/create-react-app)
+
 GPT (https://platform.openai.com/docs/api-reference/chat)
+
 Langchain (https://python.langchain.com/docs/tutorials/)
+
 Express.js (https://expressjs.com/en/4x/api.html)
 
 
