@@ -7,7 +7,7 @@ Express.js (https://expressjs.com/en/4x/api.html)
 
 
 ## key project structure
-
+```
 project/
 │
 ├── server/
@@ -20,7 +20,7 @@ project/
     ├── ChatComponent.js
     ├── PdfUploader.js
     └── RenderQA.js
-
+```
 ## how to use
 To run this locally, you will run both the server and the frontend, each using different port.
 
@@ -40,3 +40,5 @@ npm run dev
 ```
 ## screenshots
 ![image](https://github.com/user-attachments/assets/c03a172d-a336-427f-ad65-1d2483c65ae5)
+![image](https://github.com/user-attachments/assets/990416ef-f379-4be3-9723-73b7d99ad9d9)
+
