@@ -6,6 +6,9 @@
 /.pnp
 .pnp.js
 
+# file for demo
+/server/uploads
+
 # package-lock
 package-lock.json
 
