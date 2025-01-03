@@ -5,6 +5,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { processFileAndSetVectorStore, chat } from './chat.js';
 
 dotenv.config();
@@ -70,9 +72,28 @@ app.get('/chat', async (req, res) => {
     const question = req.query.question;
     const answer = await chat(question);
     res.send(answer);
+    // const response = await chat(filePath, req.query.question); // Pass the file path to your main function
+    // // 返回聊天响应的文本内容。
+    // res.send(response.text);
   } catch (error) {
     console.error('Error handling chat request:', error);
     res.status(500).send({ error: error.message });
+  }
+});
+
+const demoFilePath = './demo_docs/demo.pdf';
+app.get('/useDemo', async (req, res) => {
+  try {
+    // const demoFilePath = path.join(__dirname, '../demo_docs', 'demo1.pdf');
+
+    // 直接调用之前写好的函数
+    await processFileAndSetVectorStore(demoFilePath);
+
+    // 返回成功消息
+    res.status(200).send('Demo file processed and memory store updated!');
+  } catch (error) {
+    console.error('Error loading demo file:', error);
+    res.status(500).send(error.message);
   }
 });
 

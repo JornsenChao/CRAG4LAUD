@@ -1,7 +1,7 @@
 import React from 'react';
 import axios from 'axios'; // 引入 axios 库，用于发送 HTTP 请求
 import { InboxOutlined } from '@ant-design/icons';
-import { message, Upload } from 'antd';
+import { message, Upload, Button } from 'antd';
 
 const { Dragger } = Upload; // 解构赋值获取 Upload 组件中的 Dragger 子组件
 
@@ -27,6 +27,20 @@ const uploadToBackend = async (file) => {
   }
 };
 
+// 添加一个函数来调用后端 /useDemo 路由
+const useDemoDoc = async () => {
+  try {
+    const response = await axios.get(`${DOMAIN}/useDemo`);
+    if (response && response.status === 200) {
+      message.success('Demo file loaded successfully!');
+    } else {
+      message.error('Failed to load demo file!');
+    }
+  } catch (error) {
+    console.error('Error loading demo file:', error);
+    message.error('Error loading demo file!');
+  }
+};
 // attributes object 同时包含了函数 (name, multiple) 和数据字段(customRequest, onChange, onDrop) ，通过传递一个包含配置的对象来定制组件的行为和外观。
 // attributes object 用于配置 Upload.Dragger 组件的各种属性，包括文件字段名称、是否允许多文件上传、自定义上传请求逻辑、文件状态变化处理函数以及拖拽事件处理函数。
 const attributes = {
@@ -67,18 +81,25 @@ const attributes = {
 const PdfUploader = () => {
   // 返回一个 “拖拽文件”的文件上传窗口
   return (
-    <Dragger {...attributes}>
-      <p className="ant-upload-drag-icon">
-        <InboxOutlined />
-      </p>
-      <p className="ant-upload-text">
-        Click or drag file to this area to upload
-      </p>
-      <p className="ant-upload-hint">
-        Support for a single or bulk upload. Strictly prohibited from uploading
-        company data or other banned files.
-      </p>
-    </Dragger>
+    <div style={{ textAlign: 'center' }}>
+      {/* 1) “上传文件” 区域 */}
+      <Dragger {...attributes}>
+        <p className="ant-upload-drag-icon">
+          <InboxOutlined />
+        </p>
+        <p className="ant-upload-text">
+          Click or drag file to this area to upload
+        </p>
+        <p className="ant-upload-hint">Support for a single or bulk upload.</p>
+      </Dragger>
+
+      <br />
+
+      {/* 2) “使用 Demo” 按钮 */}
+      <Button type="primary" onClick={useDemoDoc}>
+        使用 Demo 文档
+      </Button>
+    </div>
   );
 };
 
