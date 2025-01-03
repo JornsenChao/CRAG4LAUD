@@ -66,7 +66,9 @@ const App = () => {
     <Layout style={{ height: '100vh', backgroundColor: 'white' }}>
       <Header style={{ display: 'flex', alignItems: 'center' }}>
         <Title style={{ color: 'green', fontSize: '20px' }}>
-          Chat with me on your selected file
+          A chatbot for landscape and architecture folks
+          <br />
+          Developed by Yongqin Zhao @2025
         </Title>
       </Header>
 

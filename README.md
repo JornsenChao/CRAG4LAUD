@@ -20,7 +20,7 @@ project/
 │ └── chat.js
 │ └──  .env
 │
-└── src/
+└── src/ (frontend)
   ├── App.js
   └── components/
     ├── ChatComponent.js
