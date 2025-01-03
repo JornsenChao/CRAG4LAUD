@@ -10,7 +10,6 @@ import { fileURLToPath } from 'url';
 import { processFileAndSetVectorStore, chat, vectorStoresMap } from './chat.js';
 
 dotenv.config();
-
 const app = express();
 app.use(cors());
 

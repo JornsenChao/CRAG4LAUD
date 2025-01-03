@@ -14,7 +14,8 @@
     "react-scripts": "5.0.1",
     "react-speech-recognition": "^3.10.0",
     "speak-tts": "^2.0.8",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "dev": "concurrently \"npm start\" \"npm run server\"",

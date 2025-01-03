@@ -7,25 +7,25 @@ const { Dragger } = Upload; // 解构赋值获取 Upload 组件中的 Dragger �
 
 const DOMAIN = 'http://localhost:9999';
 
-// 这个 uploadToBackend 会在 attributes 中调用，而 attributes 会作为对象传递给文件上传窗口
-const uploadToBackend = async (file) => {
-  // 创建一个 FormData 对象, 将文件添加到 FormData 对象中
-  const formData = new FormData();
-  formData.append('file', file);
-  try {
-    // 使用 axios 发送 POST 请求，将文件上传到服务器，并附带 head
-    const response = await axios.post(`${DOMAIN}/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    // 返回服务器的响应
-    return response;
-  } catch (error) {
-    console.error('Error uploading file: ', error);
-    return null;
-  }
-};
+// // 这个 uploadToBackend 会在 attributes 中调用，而 attributes 会作为对象传递给文件上传窗口
+// const uploadToBackend = async (file) => {
+//   // 创建一个 FormData 对象, 将文件添加到 FormData 对象中
+//   const formData = new FormData();
+//   formData.append('file', file);
+//   try {
+//     // 使用 axios 发送 POST 请求，将文件上传到服务器，并附带 head
+//     const response = await axios.post(`${DOMAIN}/upload`, formData, {
+//       headers: {
+//         'Content-Type': 'multipart/form-data',
+//       },
+//     });
+//     // 返回服务器的响应
+//     return response;
+//   } catch (error) {
+//     console.error('Error uploading file: ', error);
+//     return null;
+//   }
+// };
 
 // // 添加一个函数来调用后端 /useDemo 路由
 // const useDemoDoc = async () => {
@@ -78,7 +78,7 @@ const uploadToBackend = async (file) => {
 //   },
 // };
 
-const PdfUploader = ({ onUploadSuccess }) => {
+const FileUploader = ({ onUploadSuccess }) => {
   const [customFileKey, setCustomFileKey] = useState('');
 
   const customRequest = async ({ file, onSuccess, onError }) => {
@@ -98,8 +98,7 @@ const PdfUploader = ({ onUploadSuccess }) => {
       if (res.status === 200) {
         onSuccess(res.data);
         message.success(res.data);
-        // 回调父组件刷新文件列表
-        onUploadSuccess?.();
+        onUploadSuccess?.(); // 通知父组件刷新文件列表（若你有 fileList）
       } else {
         onError(new Error('Upload failed'));
         message.error('Upload failed');
@@ -114,9 +113,10 @@ const PdfUploader = ({ onUploadSuccess }) => {
   const propsForDragger = {
     name: 'file',
     multiple: false,
+    accept: '.pdf,.csv,.xlsx',
     customRequest,
     onChange(info) {
-      // 仅在 needed 时可处理其他逻辑
+      // 这里如果需要可以处理 onChange 事件
     },
   };
 
@@ -132,7 +132,9 @@ const PdfUploader = ({ onUploadSuccess }) => {
         <p className="ant-upload-drag-icon">
           <InboxOutlined />
         </p>
-        <p className="ant-upload-text">Click or drag PDF here to upload</p>
+        <p className="ant-upload-text">
+          Click or drag a PDF / CSV / XLSX to this area to upload
+        </p>
         <p className="ant-upload-hint">
           You can give it a custom key or leave blank to use file name.
         </p>
@@ -141,4 +143,4 @@ const PdfUploader = ({ onUploadSuccess }) => {
   );
 };
 
-export default PdfUploader;
+export default FileUploader;

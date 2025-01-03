@@ -55,7 +55,7 @@ const FileSelector = ({
       <div style={{ marginTop: '10px' }}>
         <Input
           style={{ width: 120 }}
-          placeholder="demo1 / demo2 ..."
+          placeholder="pdf / csv ..."
           value={demoName}
           onChange={(e) => setDemoName(e.target.value)}
         />

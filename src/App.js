@@ -1,4 +1,4 @@
-import PdfUploader from './components/PdfUploader';
+import FileUploader from './components/FileUploader';
 import ChatComponent from './components/ChatComponent';
 import RenderQA from './components/RenderQA';
 import FileSelector from './components/FileSelector';
@@ -20,7 +20,7 @@ const chatComponentStyle = {
   marginBottom: '20px',
 };
 
-const pdfUploaderStyle = {
+const fileUploaderStyle = {
   margin: 'auto',
   paddingTop: '80px',
 };
@@ -80,7 +80,7 @@ const App = () => {
         />
 
         {/* 上传成功后，也要刷新 fileList */}
-        <PdfUploader onUploadSuccess={fetchFileList} />
+        <FileUploader onUploadSuccess={fetchFileList} />
 
         <div style={{ height: '40vh', overflowY: 'auto', marginTop: 20 }}>
           <RenderQA conversation={conversation} isLoading={isLoading} />

@@ -24,7 +24,7 @@ project/
   ├── App.js
   └── components/
     ├── ChatComponent.js
-    ├── PdfUploader.js
+    ├── FileUploader.js
     └── RenderQA.js
 ```
 
@@ -32,7 +32,7 @@ project/
 
 ### frontend (React + Ant Design)
 
-通过 PdfUploader 组件把 PDF 文件上传到服务器（存到 uploads/ 目录），并在全局用一个 filePath 变量记录最后一次上传的文件路径。
+通过 FileUploader 组件把 PDF 文件上传到服务器（存到 uploads/ 目录），并在全局用一个 filePath 变量记录最后一次上传的文件路径。
 通过 ChatComponent 组件给用户一个聊天/问答框，并将用户输入的 question 发往服务器接口 /chat。
 RenderQA 组件把所有的提问和回答以一问一答的方式渲染出来。
 App.js 里则把以上三个组件整合在一个页面布局（antd 的 Layout）中。
