@@ -1,70 +1,72 @@
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { MemoryVectorStore } from "langchain/vectorstores/memory";
-import { RetrievalQAChain } from "langchain/chains";
-import { ChatOpenAI } from "langchain/chat_models/openai";
-import { PromptTemplate } from "langchain/prompts";
+// server/chat.js
 
-import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+import fs from 'fs';
+import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
+import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
+import { MemoryVectorStore } from 'langchain/vectorstores/memory';
+import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import { RetrievalQAChain } from 'langchain/chains';
+import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { PromptTemplate } from 'langchain/prompts';
 
-// NOTE: change this default filePath to any of your default file name
-// 一个异步函数，接受两个参数：filePath（默认值为 ./uploads/hbs-lean-startup.pdf）和 query（查询问题）。
-const chat = async (filePath = "./uploads/hbs-lean-startup.pdf", query) => {
-  // step 1: load the file
-  const loader = new PDFLoader(filePath); // create an instance of PDFLoader
-  const data = await loader.load(); // await until the file is loaded. this is a promise
+// 用于在内存中保存向量索引
+let memoryStore = null;
 
-  // step 2: split the big document into smaller chunks
+/**
+ * 1) 处理用户上传的 PDF，构建 MemoryVectorStore 并存入全局变量 memoryStore
+ */
+export async function processFileAndSetVectorStore(filePath) {
+  // 用 PDFLoader 加载文档
+  const loader = new PDFLoader(filePath);
+  const docs = await loader.load();
+
+  // 切分文档
   const textSplitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 500, //  (in terms of number of characters)
+    chunkSize: 500,
     chunkOverlap: 0,
-  }); // create an instance of RecursiveCharacterTextSplitter
+  });
+  const splittedDocs = await textSplitter.splitDocuments(docs);
 
-  const splitDocs = await textSplitter.splitDocuments(data); // split the big document into smaller chunks
-
-  // step 3: embeddings
-
+  // 构建嵌入并生成向量存储
   const embeddings = new OpenAIEmbeddings({
-    openAIApiKey: process.env.REACT_APP_OPENAI_API_KEY,
+    // 注意后端通常用 process.env.OPENAI_API_KEY
+    openAIApiKey: process.env.OPENAI_API_KEY,
   });
+  memoryStore = await MemoryVectorStore.fromDocuments(splittedDocs, embeddings);
 
-  const vectorStore = await MemoryVectorStore.fromDocuments(
-    splitDocs,
-    embeddings
-  );
+  console.log('Memory store updated successfully!');
+}
 
-  // step 4: retrieval
+/**
+ * 2) 基于当前的 memoryStore 做问答
+ */
+export async function chat(query) {
+  if (!memoryStore) {
+    throw new Error(
+      'No PDF has been processed yet. Please upload a file first.'
+    );
+  }
 
-  const relevantDocs = await vectorStore.similaritySearch(
-    "What is task decomposition?"
-  );
-
-  // step 5: qa w/ customzie the prompt
   const model = new ChatOpenAI({
-    modelName: "gpt-3.5-turbo",
-    openAIApiKey: process.env.REACT_APP_OPENAI_API_KEY,
+    modelName: 'gpt-3.5-turbo',
+    openAIApiKey: process.env.OPENAI_API_KEY,
   });
 
-  const template = `Use the following pieces of context to answer the question at the end.
+  const template = `
+Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
-Use three sentences maximum and keep the answer as concise as possible.
+Use ten sentences maximum and keep the answer as concise as possible.
 
 {context}
 Question: {question}
-Helpful Answer:`;
-  // step 6: pass the llm (model), retriever (vectorStore) and prompt (template) to RetrievalQAChain.fromLLM
-  const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever(), {
+Helpful Answer:
+  `;
+
+  const chain = RetrievalQAChain.fromLLM(model, memoryStore.asRetriever(), {
     prompt: PromptTemplate.fromTemplate(template),
-    // returnSourceDocuments: true,
-  });
-  // step 7: call the chain with the query
-  // chain.call：这个方法调用是异步的，调用此方法会返回一个 Promise，表示这个操作是异步的，并且在操作完成后会提供结果。
-  // await：await 关键字会暂停 chat 函数的执行，直到 chain.call 返回的 Promise 被解决（即完成或被拒绝）。在 Promise 被解决之前，chat 函数不会继续向下执行，从而确保 response 变量获得的是 chain.call 的最终结果。
-  const response = await chain.call({
-    query,
   });
 
-  return response;
-};
-
-export default chat;
+  // 调用 chain，得到回答
+  const response = await chain.call({ query });
+  return response.text; // 只返回回答部分
+}
