@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
 import PdfUploader from './components/PdfUploader';
 import ChatComponent from './components/ChatComponent';
 import RenderQA from './components/RenderQA';
+import FileSelector from './components/FileSelector';
+
+import React, { useState, useEffect } from 'react';
 import { Layout, Typography } from 'antd';
+import axios from 'axios';
+
+const DOMAIN = 'http://localhost:9999';
+
+const { Header, Content } = Layout;
+const { Title } = Typography;
 
 const chatComponentStyle = {
   position: 'fixed',
@@ -27,56 +35,65 @@ const App = () => {
   // isLoading：使用 useState 钩子来管理加载状态，初始值为 false。
   const [conversation, setConversation] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  // 解构 antd 的组件
-  const { Header, Content } = Layout;
-  const { Title } = Typography;
 
-  // handleResp 把 当前的 question, answer 河滨成一个元素 加入 conversation。会作为参数传入 ChatComponent.js
+  // 1) 当前选中的 fileKey
+  const [activeFile, setActiveFile] = useState('');
+
+  // 2) 当前已有的全部 fileKey 列表
+  const [fileList, setFileList] = useState([]);
+
+  // 3) 拉取后端已有的 fileKey 列表
+  const fetchFileList = async () => {
+    try {
+      const res = await axios.get(`${DOMAIN}/listFiles`);
+      setFileList(res.data); // 更新前端的 fileList
+    } catch (err) {
+      console.error('Failed to fetch file list:', err);
+    }
+  };
+
+  // 组件挂载时，先获取一次
+  useEffect(() => {
+    fetchFileList();
+  }, []);
+
+  // 处理回答结果 handleResp 把 当前的 question, answer 河滨成一个元素 加入 conversation。会作为参数传入 ChatComponent.js
   const handleResp = (question, answer) => {
     setConversation([...conversation, { question, answer }]);
   };
 
   return (
-    // 页面的三个部分， PdfUploader, renderQA, ChatComponent
-    // 分别调用这三个函数，
-    // 其中 PdfUploader 不需要传入参数，
-    // renderQAStyle 需要传入 conversation 和 isLoading
-    // ChatComponent 需要传入 handleResp（本 App.js 中定义）， isLoading, 和 setIsLoading
-    <>
-      <Layout style={{ height: '100vh', backgroundColor: 'white' }}>
-        <Header
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <Title style={{ color: 'green', fontSize: '20px' }}>
-            Chat with me on your local file
-          </Title>
-        </Header>
-        <Content style={{ width: '80%', margin: 'auto' }}>
-          <div style={pdfUploaderStyle}>
-            <PdfUploader />
-          </div>
+    <Layout style={{ height: '100vh', backgroundColor: 'white' }}>
+      <Header style={{ display: 'flex', alignItems: 'center' }}>
+        <Title style={{ color: 'green', fontSize: '20px' }}>
+          Chat with me on your selected file
+        </Title>
+      </Header>
 
-          <br />
-          <br />
-          <div style={renderQAStyle}>
-            <RenderQA conversation={conversation} isLoading={isLoading} />
-          </div>
+      <Content style={{ width: '80%', margin: 'auto', paddingTop: 20 }}>
+        {/* 传递 fileList 和 fetchFileList，让 FileSelector 可以显示、刷新 */}
+        <FileSelector
+          fileList={fileList}
+          fetchFileList={fetchFileList}
+          activeFile={activeFile}
+          setActiveFile={setActiveFile}
+        />
 
-          <br />
-          <br />
-        </Content>
-        <div style={chatComponentStyle}>
-          <ChatComponent
-            handleResp={handleResp}
-            isLoading={isLoading}
-            setIsLoading={setIsLoading}
-          />
+        {/* 上传成功后，也要刷新 fileList */}
+        <PdfUploader onUploadSuccess={fetchFileList} />
+
+        <div style={{ height: '40vh', overflowY: 'auto', marginTop: 20 }}>
+          <RenderQA conversation={conversation} isLoading={isLoading} />
         </div>
-      </Layout>
-    </>
+
+        <ChatComponent
+          handleResp={handleResp}
+          isLoading={isLoading}
+          setIsLoading={setIsLoading}
+          activeFile={activeFile}
+        />
+      </Content>
+    </Layout>
   );
 };
 

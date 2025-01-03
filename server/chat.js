@@ -1,6 +1,7 @@
 // server/chat.js
 
 import fs from 'fs';
+import path from 'path';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
@@ -9,13 +10,19 @@ import { RetrievalQAChain } from 'langchain/chains';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { PromptTemplate } from 'langchain/prompts';
 
-// 用于在内存中保存向量索引
-let memoryStore = null;
+export const vectorStoresMap = {};
+// 用来保存所有文件的 vector store： { fileName1: store1, fileName2: store2, ... }
+
+/**
+ * 处理 PDF 文件，产生向量索引，存到 vectorStoresMap[fileKey] 中
+ * @param {string} filePath - PDF 路径
+ * @param {string} fileKey - 存在 map 中的 key
+ */
 
 /**
  * 1) 处理用户上传的 PDF，构建 MemoryVectorStore 并存入全局变量 memoryStore
  */
-export async function processFileAndSetVectorStore(filePath) {
+export async function processFileAndSetVectorStore(filePath, fileKey) {
   // 用 PDFLoader 加载文档
   const loader = new PDFLoader(filePath);
   const docs = await loader.load();
@@ -32,18 +39,25 @@ export async function processFileAndSetVectorStore(filePath) {
     // 注意后端通常用 process.env.OPENAI_API_KEY
     openAIApiKey: process.env.OPENAI_API_KEY,
   });
-  memoryStore = await MemoryVectorStore.fromDocuments(splittedDocs, embeddings);
-
+  // memoryStore = await MemoryVectorStore.fromDocuments(splittedDocs, embeddings);
+  // 生成向量存储
+  const memoryStore = await MemoryVectorStore.fromDocuments(
+    splittedDocs,
+    embeddings
+  );
+  // 存到全局对象中
+  vectorStoresMap[fileKey] = memoryStore;
   console.log('Memory store updated successfully!');
 }
 
 /**
  * 2) 基于当前的 memoryStore 做问答
  */
-export async function chat(query) {
-  if (!memoryStore) {
+export async function chat(query, fileKey) {
+  // 如果这个文件还没有生成向量索引，报错
+  if (!vectorStoresMap[fileKey]) {
     throw new Error(
-      'No PDF has been processed yet. Please upload a file first.'
+      `File "${fileKey}" not found. Please upload or load a demo first.`
     );
   }
 
@@ -54,7 +68,7 @@ export async function chat(query) {
 
   const template = `
 Use the following pieces of context to answer the question at the end.
-If you don't know the answer, just say that you don't know, don't try to make up an answer.
+If you don't know the answer, just say "I don't know," don't try to make up an answer.
 Use ten sentences maximum and keep the answer as concise as possible.
 
 {context}
@@ -62,9 +76,13 @@ Question: {question}
 Helpful Answer:
   `;
 
-  const chain = RetrievalQAChain.fromLLM(model, memoryStore.asRetriever(), {
-    prompt: PromptTemplate.fromTemplate(template),
-  });
+  const chain = RetrievalQAChain.fromLLM(
+    model,
+    vectorStoresMap[fileKey].asRetriever(),
+    {
+      prompt: PromptTemplate.fromTemplate(template),
+    }
+  );
 
   // 调用 chain，得到回答
   const response = await chain.call({ query });
