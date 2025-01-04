@@ -93,6 +93,7 @@ export async function chat(query, fileKey) {
 Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say "I don't know," don't make up an answer.
 Use ten sentences maximum and keep the answer as concise as possible.
+The user question maybe in English or other language, and if it's not in English, you should also reply to the user in their native language.
 
 {context}
 Question: {question}
