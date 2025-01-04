@@ -4,8 +4,9 @@ import RenderQA from './components/RenderQA';
 import FileSelector from './components/FileSelector';
 
 import React, { useState, useEffect } from 'react';
-import { Layout, Typography } from 'antd';
+import { Layout, Typography, Button } from 'antd'; //【新增：Button】
 import axios from 'axios';
+import ProRAG from './pages/ProRAG'; //【新增：引入ProRAG页面】
 
 const DOMAIN = 'http://localhost:9999';
 
@@ -31,6 +32,11 @@ const renderQAStyle = {
 };
 
 const App = () => {
+  // ============【新增：视图模式】============ //
+  const [viewMode, setViewMode] = useState('quicktalk');
+  // quicktalk 或 proRAG
+
+  // ============（以下保留你的 QuickTalk逻辑）============ //
   //   conversation：使用 useState 钩子来管理对话的状态，初始值为 空数组。
   // isLoading：使用 useState 钩子来管理加载状态，初始值为 false。
   const [conversation, setConversation] = useState([]);
@@ -64,36 +70,59 @@ const App = () => {
 
   return (
     <Layout style={{ height: '100vh', backgroundColor: 'white' }}>
-      <Header style={{ display: 'flex', alignItems: 'center' }}>
+      <Header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <Title style={{ color: 'green', fontSize: '20px' }}>
           A chatbot for landscape and architecture folks
-          <br />
-          Developed by Yongqin Zhao @2025
         </Title>
+        {/* ============【新增：切换按钮】============ */}
+        <Button
+          type="primary"
+          onClick={() => {
+            setViewMode(viewMode === 'quicktalk' ? 'proRAG' : 'quicktalk');
+          }}
+        >
+          Switch to {viewMode === 'quicktalk' ? 'ProRAG' : 'QuickTalk'}
+        </Button>
       </Header>
 
       <Content style={{ width: '80%', margin: 'auto', paddingTop: 20 }}>
-        {/* 传递 fileList 和 fetchFileList，让 FileSelector 可以显示、刷新 */}
-        <FileSelector
-          fileList={fileList}
-          fetchFileList={fetchFileList}
-          activeFile={activeFile}
-          setActiveFile={setActiveFile}
-        />
+        {viewMode === 'quicktalk' && (
+          <>
+            <h2>QuickTalk Mode</h2>
+            <FileSelector
+              fileList={fileList}
+              fetchFileList={fetchFileList}
+              activeFile={activeFile}
+              setActiveFile={setActiveFile}
+            />
 
-        {/* 上传成功后，也要刷新 fileList */}
-        <FileUploader onUploadSuccess={fetchFileList} />
+            <FileUploader onUploadSuccess={fetchFileList} />
 
-        <div style={{ height: '40vh', overflowY: 'auto', marginTop: 20 }}>
-          <RenderQA conversation={conversation} isLoading={isLoading} />
-        </div>
+            <div style={{ height: '40vh', overflowY: 'auto', marginTop: 20 }}>
+              <RenderQA conversation={conversation} isLoading={isLoading} />
+            </div>
 
-        <ChatComponent
-          handleResp={handleResp}
-          isLoading={isLoading}
-          setIsLoading={setIsLoading}
-          activeFile={activeFile}
-        />
+            <ChatComponent
+              handleResp={handleResp}
+              isLoading={isLoading}
+              setIsLoading={setIsLoading}
+              activeFile={activeFile}
+            />
+          </>
+        )}
+
+        {viewMode === 'proRAG' && (
+          <>
+            <h2>ProRAG Mode</h2>
+            <ProRAG />
+          </>
+        )}
       </Content>
     </Layout>
   );
