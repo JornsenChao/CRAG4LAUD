@@ -1,10 +1,11 @@
 // src/pages/ProRAG.jsx
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Upload, Button, message, Select, Spin, Input } from 'antd';
+import { Upload, Button, message, Modal, Select, Spin, Input } from 'antd';
 import * as XLSX from 'xlsx';
 import ColumnMapper from '../components/ColumnMapper';
 import RAGQuery from '../components/RAGQuery';
+import DependencySelector from '../components/DependencySelector';
 
 const { Dragger } = Upload;
 const DOMAIN = 'http://localhost:9999';
@@ -19,6 +20,41 @@ const ProRAG = () => {
     referenceCol: [],
   });
   const [storeBuilt, setStoreBuilt] = useState(false);
+  const [buildingStore, setBuildingStore] = useState(false);
+
+  // =========== 新增状态：管理用户在 DependencySelector 里的选择  ===========
+  const [dependencyData, setDependencyData] = useState({}); // { climateRisks, regulations, projectTypes, environment, scale, additional }
+  const [previewPrompt, setPreviewPrompt] = useState('');
+  const [previewVisible, setPreviewVisible] = useState(false);
+
+  // 用户点击“Preview Query”后，拼装成最终要查询的文本
+  const handlePreviewQuery = () => {
+    // 把 dependencyData 各项拼成一段文字
+    const {
+      climateRisks = [],
+      regulations = [],
+      projectTypes = [],
+      environment = [],
+      scale = [],
+      additional = '',
+    } = dependencyData;
+
+    // 简单拼成一段
+    const text = `
+【气候风险类型】= ${climateRisks.join(', ') || '无'}
+【法规限制】= ${regulations.join(', ') || '无'}
+【项目类型】= ${projectTypes.join(', ') || '无'}
+【项目环境】= ${environment.join(', ') || '无'}
+【项目尺度】= ${scale.join(', ') || '无'}
+【其他补充】= ${additional || '无'}
+`.trim();
+
+    setPreviewPrompt(text);
+    setPreviewVisible(true);
+  };
+
+  // 你也可以在弹窗里再确认后，自动发请求
+  // 这里先演示点击"Confirm & Query"时，把 previewPrompt 当做 dependencyDescription
 
   // 步骤1: 上传表格
   const uploadProps = {
@@ -107,17 +143,17 @@ const ProRAG = () => {
   };
 
   return (
-    <div>
+    <div style={{ padding: 20 }}>
       {!storeBuilt && (
         <>
-          <h4>1. Upload your CSV/Excel</h4>
+          <h3>1. Upload Tabular File(CSV/Excel)</h3>
           <Dragger {...uploadProps} style={{ marginBottom: 20 }}>
             <p>Click or drag file to upload</p>
           </Dragger>
 
           {columns.length > 0 && (
             <>
-              <h4>2. Map columns</h4>
+              <h3>2. Map Columns to Category </h3>
               <ColumnMapper
                 columns={columns}
                 columnMap={columnMap}
@@ -126,6 +162,7 @@ const ProRAG = () => {
               <Button
                 type="primary"
                 onClick={handleBuildStore}
+                loading={buildingStore}
                 style={{ marginTop: 10 }}
               >
                 Build Store
@@ -137,8 +174,53 @@ const ProRAG = () => {
 
       {storeBuilt && (
         <>
-          <h4>3. Now you can query ProRAG</h4>
-          <RAGQuery fileKey={fileKey} />
+          <h2>ProRAG Database is now ready</h2>
+          <p>
+            You can use the following UI to collect dependency conditions and
+            then perform RAG queries.
+          </p>
+
+          <h3>3. Select or Input</h3>
+          <DependencySelector onChange={(data) => setDependencyData(data)} />
+
+          <div>
+            <Button type="default" onClick={handlePreviewQuery}>
+              Preview Selction
+            </Button>
+          </div>
+
+          <Modal
+            title="Preview of Dependency Query"
+            visible={previewVisible}
+            onCancel={() => setPreviewVisible(false)}
+            footer={[
+              <Button key="cancel" onClick={() => setPreviewVisible(false)}>
+                Close
+              </Button>,
+              <Button
+                key="confirm"
+                type="primary"
+                onClick={() => {
+                  // 你也可以改成单独的函数
+                  setPreviewVisible(false);
+                  // 做别的处理，比如自动更新 <RAGQuery> 的 dependency
+                }}
+              >
+                Confirm & Close
+              </Button>,
+            ]}
+          >
+            <div style={{ whiteSpace: 'pre-wrap' }}>{previewPrompt}</div>
+          </Modal>
+
+          <h3 style={{ marginTop: 30 }}>4. RAG Query</h3>
+          <p>
+            这里直接用你已有的 <code>RAGQuery</code> 组件示例。
+            <br />
+            你可以将 <b>previewPrompt</b> 作为 <code>defaultDependency</code>{' '}
+            传给 RAGQuery。
+          </p>
+          <RAGQuery fileKey={fileKey} defaultDependency={previewPrompt} />
         </>
       )}
     </div>

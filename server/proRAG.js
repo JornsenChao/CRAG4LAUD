@@ -88,70 +88,56 @@ export async function buildProRAGStore(filePath, fileKey, columnMap) {
  */
 export async function proRAGQuery(queryDependency, fileKey, language = 'en') {
   const store = proRAGStores.vectorStoreMap[fileKey];
-  if (!store) {
-    throw new Error(`No vector store found for fileKey=${fileKey}.`);
-  }
-
-  // 1) 先做相似度检索
   const docs = await store.similaritySearch(queryDependency, 5);
 
-  // 2) 拼接上下文
   const context = docs
     .map(
       (d, idx) => `
-    Strategy #${idx + 1}:
-    ${d.pageContent}
-    Reference: ${d.metadata.reference}
-    DependencyTag: ${d.metadata.dependency}
-  `
+      Strategy #${idx + 1}:
+      ${d.pageContent}
+      Reference: ${d.metadata.reference}
+      DependencyTag: ${d.metadata.dependency}
+      `
     )
     .join('\n');
 
-  // 3) 构造 Prompt
   let langPrompt = '';
   if (language === 'zh') {
     langPrompt = 'You are a multilingual assistant. Please answer in Chinese.';
-  } else if (language === 'en') {
-    langPrompt = 'You are a multilingual assistant. Please answer in English.';
   } else {
-    // 其他语言
     langPrompt = `You are a multilingual assistant. Please answer in ${language}.`;
   }
 
   const template = `
-    ${langPrompt}
-    The user has described these dependencies:
-    "${queryDependency}"
+${langPrompt}
+The user has described these dependencies:
+"{question}"
 
-    We found these relevant strategies:
-    ${context}
+We found these relevant strategies:
+{context}
 
-    Please provide a concise answer referencing the strategies above if needed.
-    If there's not enough info, say "No more info available."
-  `;
+Please provide a concise answer referencing the strategies above if needed.
+If there's not enough info, say "No more info available."
+`;
 
+  // 构造 RetrievalQAChain
   const model = new ChatOpenAI({
     modelName: 'gpt-3.5-turbo',
     openAIApiKey: process.env.OPENAI_API_KEY,
   });
+  const chain = RetrievalQAChain.fromLLM(model, store.asRetriever(), {
+    prompt: PromptTemplate.fromTemplate(template),
+  });
 
-  //   const chain = new RetrievalQAChain({
-  //     combineDocumentsChain: null, // 我们不让chain自己combine
-  //     retriever: null,
-  //     llm: model,
-  //     prompt: PromptTemplate.fromTemplate(template),
-  //   });
-  const chain = RetrievalQAChain.fromLLM(
-    model,
-    store.asRetriever(), // 如果想利用内置检索
-    {
-      prompt: PromptTemplate.fromTemplate(template),
-      // 也可自定义 inputKey, outputKey，但一般默认 "query"
-    }
-  );
+  // 调用 chain
+  const response = await chain.call({ query: queryDependency });
+  const answer = response.text;
 
-  // 调用时必须传 { query: xxx }
-  const result = await chain.call({ query: queryDependency });
-  //   const result = await chain.call({});
-  return result.text;
+  // 关键：把最终注入到 Prompt 的完整字符串拼起来
+  const usedPrompt = template
+    .replace('{context}', context)
+    .replace('{question}', queryDependency);
+
+  // 把 answer 和 usedPrompt 一起返回
+  return { answer, usedPrompt };
 }
