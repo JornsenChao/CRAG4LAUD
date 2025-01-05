@@ -6,10 +6,11 @@ const { TextArea } = Input;
 
 // 你可以根据实际需要，把各个选项写成数组，也可从服务端获取
 const climateRiskOptions = [
-  { label: '洪涝', value: 'flooding' },
-  { label: '干旱', value: 'drought' },
-  { label: '极端高温', value: 'heatwave' },
-  { label: '海平面上升', value: 'sea level rise' },
+  { label: 'Flooding', value: 'flooding' },
+  { label: 'Drought', value: 'drought' },
+  { label: 'Extreme Heat Wave', value: 'heatwave' },
+  { label: 'Sea Level Rise', value: 'sea level rise' },
+  { label: 'Landslide', value: 'landslide' },
 ];
 
 const regulatoryOptions = [

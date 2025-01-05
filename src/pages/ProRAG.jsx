@@ -219,8 +219,10 @@ const ProRAG = () => {
             <br />
             你可以将 <b>previewPrompt</b> 作为 <code>defaultDependency</code>{' '}
             传给 RAGQuery。
+            <br />
+            give me 10 strategies for my project context, each with reference
           </p>
-          <RAGQuery fileKey={fileKey} defaultDependency={previewPrompt} />
+          <RAGQuery fileKey={fileKey} dependencyData={dependencyData} />
         </>
       )}
     </div>

@@ -86,9 +86,33 @@ export async function buildProRAGStore(filePath, fileKey, columnMap) {
  * @param {string} language  'en' | 'zh' etc.
  * @returns {string} answer
  */
-export async function proRAGQuery(queryDependency, fileKey, language = 'en') {
+export async function proRAGQuery(
+  dependencyData,
+  userQuery,
+  fileKey,
+  language = 'en'
+) {
   const store = proRAGStores.vectorStoreMap[fileKey];
-  const docs = await store.similaritySearch(queryDependency, 5);
+
+  // 将 dependencyData 转换为文本
+  const dependencyText = `
+User Dependencies:
+${Object.entries(dependencyData)
+  .map(
+    ([key, value]) =>
+      `  - ${key}: ${Array.isArray(value) ? value.join(', ') : value}`
+  )
+  .join('\n')}
+`;
+
+  const combinedQuery = `
+${dependencyText}
+
+User Query:
+${userQuery}
+`;
+
+  const docs = await store.similaritySearch(combinedQuery, 5);
 
   const context = docs
     .map(
@@ -102,22 +126,28 @@ export async function proRAGQuery(queryDependency, fileKey, language = 'en') {
     .join('\n');
 
   let langPrompt = '';
-  if (language === 'zh') {
+  if (language === 'en') {
+    langPrompt = 'You are a multilingual assistant. Please answer in English.';
+  } else if (language === 'zh') {
     langPrompt = 'You are a multilingual assistant. Please answer in Chinese.';
   } else {
     langPrompt = `You are a multilingual assistant. Please answer in ${language}.`;
   }
 
   const template = `
-${langPrompt}
-The user has described these dependencies:
-"{question}"
+    ${langPrompt}
+    The user has described these dependencies, which is related to the project context:
+    "${dependencyText}"
 
-We found these relevant strategies:
-{context}
+    They also asked this question that they want you to solve:
+    "${userQuery}"
 
-Please provide a concise answer referencing the strategies above if needed.
-If there's not enough info, say "No more info available."
+    We found these relevant strategies:
+    ${context}
+
+
+    Please provide a concise and also comprehensive answer referencing the strategies above if needed.
+    If there's not enough info, say "No more info available."
 `;
 
   // 构造 RetrievalQAChain
@@ -130,13 +160,14 @@ If there's not enough info, say "No more info available."
   });
 
   // 调用 chain
-  const response = await chain.call({ query: queryDependency });
+  const response = await chain.call({ query: combinedQuery });
   const answer = response.text;
 
   // 关键：把最终注入到 Prompt 的完整字符串拼起来
   const usedPrompt = template
-    .replace('{context}', context)
-    .replace('{question}', queryDependency);
+    .replace('{dependencyText}', dependencyText)
+    .replace('{userQuery}', userQuery)
+    .replace('{context}', context);
 
   // 把 answer 和 usedPrompt 一起返回
   return { answer, usedPrompt };

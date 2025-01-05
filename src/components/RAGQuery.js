@@ -13,7 +13,7 @@ const DOMAIN = 'http://localhost:9999';
  * @param {object} dependencyData - 父组件传入的依赖信息对象 (★ 新增)
  */
 const RAGQuery = ({ fileKey, dependencyData }) => {
-  const [dependencyDesc, setDependencyDesc] = useState('');
+  const [dependencyDesc, setDependencyDesc] = useState(''); // 用户输入的问题
   const [language, setLanguage] = useState('en');
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState('');
@@ -32,13 +32,14 @@ const RAGQuery = ({ fileKey, dependencyData }) => {
     try {
       const res = await axios.post(`${DOMAIN}/proRAG/query`, {
         fileKey,
-        dependencyDescription: dependencyDesc,
+        dependencyData, // 将依赖项数据传递到后端
+        userQuery: dependencyDesc, // 用户输入的问题
         language,
       });
       if (res.status === 200) {
         // 后端返回 answer / usedPrompt
         setAnswer(res.data.answer);
-        setPromptPreview(res.data.usedPrompt);
+        setPromptPreview(res.data.usedPrompt); // 将后端返回的 Prompt 放入 Modal
       }
     } catch (err) {
       console.error(err);
