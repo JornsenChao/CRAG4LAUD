@@ -135,6 +135,7 @@ ${userQuery}
   }
 
   const template = `
+  You are a consultant with specialized knowledge in landscape architecture, architecture, urban planning, engineering and design.
     ${langPrompt}
     The user has described these dependencies, which is related to the project context:
     "${dependencyText}"
@@ -146,7 +147,8 @@ ${userQuery}
     ${context}
 
 
-    Please provide a concise and also comprehensive answer referencing the strategies above if needed.
+    Please provide a concise and also comprehensive answer referencing the strategies above if needed. 
+    Please pay attention to specific numbers the users mentioned in their question. For example: " Provide me 10 strategies", then you should provide 10 strategies; if there are less then the number mentioned in the question, then you should provide all the strategies; if there's no number mentioned in the question, then you should provide all the strategies.
     If there's not enough info, say "No more info available."
 `;
 
