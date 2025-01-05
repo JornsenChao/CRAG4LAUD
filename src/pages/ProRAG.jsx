@@ -146,7 +146,7 @@ const ProRAG = () => {
     <div style={{ padding: 20 }}>
       {!storeBuilt && (
         <>
-          <h3>1. Upload Tabular File(CSV/Excel)</h3>
+          <h3>1. Upload Your Tabular File(CSV/Excel)</h3>
           <Dragger {...uploadProps} style={{ marginBottom: 20 }}>
             <p>Click or drag file to upload</p>
           </Dragger>
@@ -180,7 +180,7 @@ const ProRAG = () => {
             then perform RAG queries.
           </p>
 
-          <h3>3. Select or Input</h3>
+          <h3>3. Provide me some project context</h3>
           <DependencySelector onChange={(data) => setDependencyData(data)} />
 
           <div>
@@ -213,7 +213,7 @@ const ProRAG = () => {
             <div style={{ whiteSpace: 'pre-wrap' }}>{previewPrompt}</div>
           </Modal>
 
-          <h3 style={{ marginTop: 30 }}>4. RAG Query</h3>
+          <h3 style={{ marginTop: 30 }}>4. What do you want to get</h3>
           <p>
             这里直接用你已有的 <code>RAGQuery</code> 组件示例。
             <br />
