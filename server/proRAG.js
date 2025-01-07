@@ -216,8 +216,10 @@ ${d.pageContent}
 
   // =============== 5. 构建 Prompt =============== //
   let langPrompt = '';
-  if (language === 'zh') langPrompt = 'Answer in Chinese.';
-  else if (language === 'en') langPrompt = 'Answer in English.';
+  if (language === 'zh') langPrompt = 'You must answer in Chinese 中文.';
+  else if (language === 'en') langPrompt = 'You must answer in English.';
+  else if (language === 'es')
+    langPrompt = 'You must answer in Spanish Espanol.';
   else {
     langPrompt = `Answer in ${language}.`;
   }
@@ -249,9 +251,14 @@ ${userQuery}
 
   // =============== 6. 调用 langchain 的 RetrievalQAChain =============== //
   const model = new ChatOpenAI({
-    modelName: 'gpt-3.5-turbo',
+    modelName: process.env.OPENAI_MODEL,
     openAIApiKey: process.env.OPENAI_API_KEY,
   });
+  // const model = new ChatHuggingFace({
+  //   apiKey: process.env.HUGGINGFACE_API_KEY,
+  //   model: process.env.HUGGINGFACE_MODEL,
+  //   // temperature: 0.7,
+  // });
 
   const chain = RetrievalQAChain.fromLLM(model, store.asRetriever(), {
     prompt: PromptTemplate.fromTemplate(template),
@@ -360,9 +367,13 @@ ReferenceInDoc : ${d.metadata.reference}
     .join('\n');
 
   let langPrompt = '';
-  if (language === 'zh') langPrompt = 'Answer in Chinese.';
-  else if (language === 'en') langPrompt = 'Answer in English.';
-  else langPrompt = `Answer in ${language}.`;
+  if (language === 'zh') langPrompt = 'You must answer in Chinese 中文.';
+  else if (language === 'en') langPrompt = 'You must answer in English.';
+  else if (language === 'es')
+    langPrompt = 'You must answer in Spanish Espanol.';
+  else {
+    langPrompt = `Answer in ${language}.`;
+  }
 
   // 这里我们加了一个"先写推理过程，再给最终答案"的指令
   const template = `
@@ -386,9 +397,14 @@ User's question: ${userQuery}
   `;
 
   const model = new ChatOpenAI({
-    modelName: 'gpt-3.5-turbo',
+    modelName: process.env.OPENAI_MODEL,
     openAIApiKey: process.env.OPENAI_API_KEY,
   });
+  // const model = new ChatHuggingFace({
+  //   apiKey: process.env.HUGGINGFACE_API_KEY,
+  //   model: process.env.HUGGINGFACE_MODEL,
+  //   // temperature: 0.7,
+  // });
   const chain = RetrievalQAChain.fromLLM(model, store.asRetriever(), {
     prompt: PromptTemplate.fromTemplate(template),
   });

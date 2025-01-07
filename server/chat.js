@@ -4,6 +4,7 @@ import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { CSVLoader } from 'langchain/document_loaders/fs/csv';
 // 如果你的langchain版本没有CSVLoader，可以用自定义方式
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
+import { HuggingFaceInferenceEmbeddings } from 'langchain/embeddings/hf';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { RetrievalQAChain } from 'langchain/chains';
@@ -79,9 +80,14 @@ export async function processFileAndSetVectorStore(filePath, fileKey) {
   const splittedDocs = await loadAndSplitDocumentsByType(filePath);
 
   // 嵌入
+  // you can replace venders here: HuggingFaceInferenceEmbeddings, OpenAIEmbeddings,
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: process.env.OPENAI_API_KEY,
   });
+  // const embeddings = new HuggingFaceInferenceEmbeddings({
+  //   apiKey: process.env.HUGGINGFACE_API_KEY,
+  //   model: process.env.HUGGINGFACE_MODEL,
+  // });
   const memoryStore = await MemoryVectorStore.fromDocuments(
     splittedDocs,
     embeddings
@@ -101,11 +107,16 @@ export async function chat(query, fileKey) {
     throw new Error(`File "${fileKey}" not found or not processed yet.`);
   }
 
+  // you can replace venders here: ChatHuggingFacePipeline, ChatOpenAI, ChatAnthropic、ChatGooglePalm、ChatAzureOpenAI
   const model = new ChatOpenAI({
-    modelName: 'gpt-3.5-turbo',
+    modelName: process.env.OPENAI_MODEL,
     openAIApiKey: process.env.OPENAI_API_KEY,
   });
-
+  // const model = new ChatHuggingFace({
+  //   apiKey: process.env.HUGGINGFACE_API_KEY,
+  //   model: process.env.HUGGINGFACE_MODEL,
+  //   // temperature: 0.7,
+  // });
   const template = `
 Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say "I don't know," don't make up an answer.
