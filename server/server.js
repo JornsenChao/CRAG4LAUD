@@ -151,12 +151,19 @@ app.post('/proRAG/buildStore', async (req, res) => {
  */
 app.post('/proRAG/query', async (req, res) => {
   try {
-    const { fileKey, dependencyData, userQuery, language } = req.body;
+    const {
+      fileKey,
+      dependencyData,
+      userQuery,
+      language,
+      customFields = [],
+    } = req.body;
     const { answer, usedPrompt } = await proRAGQuery(
       dependencyData,
       userQuery,
       fileKey,
-      language
+      language,
+      customFields
     );
     res.json({ answer, usedPrompt });
   } catch (err) {
