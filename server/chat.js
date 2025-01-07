@@ -12,8 +12,20 @@ import { PromptTemplate } from 'langchain/prompts';
 import XLSX from 'xlsx';
 import { Document } from 'langchain/document';
 
-export const vectorStoresMap = {};
+/*
+这个文件是快速聊天的主要逻辑：
 
+1) 读取文件并切分
+2) 生成并保存 MemoryVectorStore
+3) 聊天
+*/
+
+export const vectorStoresMap = {};
+/*
+ * 1) 读取文件并切分
+ * 尝试根据 filePath 解析文件类型，加载文件到 docs，切分，返回切分后的文件 splittedDocs
+这个函数会在下面的 processFileAndSetVectorStore 被调用
+ */
 export async function loadAndSplitDocumentsByType(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   let docs = [];
@@ -58,7 +70,10 @@ export async function loadAndSplitDocumentsByType(filePath) {
 }
 
 /**
- * 生成并保存 MemoryVectorStore
+ * 2) 生成并保存 MemoryVectorStore
+ * 根据 filePath，调用 loadAndSplitDocumentsByType，得到切分后的文件 splittedDocs
+ * 将 splittedDocs 嵌入，得到 embeddings，构建 这个文件的 memoryStore
+ * 根据文件名 fileKey 将 memoryStore 保存到 vectorStoresMap
  */
 export async function processFileAndSetVectorStore(filePath, fileKey) {
   const splittedDocs = await loadAndSplitDocumentsByType(filePath);
@@ -77,7 +92,9 @@ export async function processFileAndSetVectorStore(filePath, fileKey) {
 }
 
 /**
- * 2) 基于当前的 memoryStore 做问答
+ * 3) 基于当前的 memoryStore 做问答
+ * 需要用户的问题 query，以及提问的文件名 fileKey
+ * 会在 app.get('/chat', async (req, res) => {} 中被调用。两个参数这样被解析:const { question, fileKey } = req.query; 其中 req是request，res是response
  */
 export async function chat(query, fileKey) {
   if (!vectorStoresMap[fileKey]) {

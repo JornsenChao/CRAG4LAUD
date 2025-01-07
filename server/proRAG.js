@@ -14,14 +14,18 @@ import { Document } from 'langchain/document';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 这里存放 “fileKey -> vectorStore” 映射，以及 “fileKey -> 列映射配置”
+/* 
+proRAGStores 包含两部分：columnMap 和 vectorStoreMap
+columnMap[fileKey] 表示 这三类{ dependencyCol, strategyCol, referenceCol } 有哪些列
+vectorStoreMap[fileKey] 表示这个文件嵌入结果
+*/
 export const proRAGStores = {
   columnMap: {}, // { [fileKey]: { dependencyCol, strategyCol, referenceCol } }
   vectorStoreMap: {}, // { [fileKey]: MemoryVectorStore实例 }
 };
 
 /**
- * 将上传的 CSV/XLSX 解析成JS对象数组
+ * 将上传的 CSV/XLSX 解析成JS对象数组 records
  */
 function parseTable(filePath) {
   const ext = path.extname(filePath).toLowerCase();
@@ -43,7 +47,7 @@ function parseTable(filePath) {
  * 供外部调用：把表格解析->构建 MemoryVectorStore
  * @param {string} filePath  后端已保存的临时文件路径
  * @param {string} fileKey   作为索引的唯一标识
- * @param {object} columnMap { dependencyCol, strategyCol, referenceCol }
+ * @param {object} columnMap 这个文件的那些列分别对应了 { dependencyCol, strategyCol, referenceCol }
  */
 export async function buildProRAGStore(filePath, fileKey, columnMap) {
   const records = parseTable(filePath);
@@ -81,9 +85,10 @@ export async function buildProRAGStore(filePath, fileKey, columnMap) {
 
 /**
  * 供外部调用：在构建好 store 后，用 dependency 做查询 + LLM回答
- * @param {string} queryDependency
- * @param {string} fileKey
- * @param {string} language  'en' | 'zh' etc.
+ * @param {string} queryDependency 是用户描述的context信息，比如：灾害，限制，类型等
+ * @param {string} userQuery 是用户的问题，比如 "give me 10 strategies for my project context, each with reference"
+ * @param {string} fileKey 是文件的唯一标识
+ * @param {string} language  语言，en/zh/es. 默认en
  * @returns {string} answer
  */
 export async function proRAGQuery(
@@ -111,9 +116,9 @@ ${dependencyText}
 User Query:
 ${userQuery}
 `;
-
-  const docs = await store.similaritySearch(combinedQuery, 5);
-
+  // 搜索最相近的若干chunk
+  const docs = await store.similaritySearch(combinedQuery, 10);
+  // 整理搜索结果，给LLM,用来汇总成自然语言的答案
   const context = docs
     .map(
       (d, idx) => `
@@ -130,10 +135,12 @@ ${userQuery}
     langPrompt = 'You are a multilingual assistant. Please answer in English.';
   } else if (language === 'zh') {
     langPrompt = 'You are a multilingual assistant. Please answer in Chinese.';
+  } else if (language === 'es') {
+    langPrompt = 'You are a multilingual assistant. Please answer in Espanol.';
   } else {
     langPrompt = `You are a multilingual assistant. Please answer in ${language}.`;
   }
-
+  // 构造 prompt，包含：角色，用户描述的context，用户的问题，搜索到的chunk
   const template = `
   You are a consultant with specialized knowledge in landscape architecture, architecture, urban planning, engineering and design.
     ${langPrompt}

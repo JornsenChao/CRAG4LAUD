@@ -6,14 +6,13 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { processFileAndSetVectorStore, chat, vectorStoresMap } from './chat.js';
-// 【新增：引入 proRAG 逻辑】
 import { buildProRAGStore, proRAGQuery, proRAGStores } from './proRAG.js';
 
 dotenv.config();
 const app = express();
 app.use(cors());
 
-// 【新增：允许express接收json body】
+// 新增：允许express接收json body
 app.use(express.json());
 
 const PORT = process.env.PORT || 9999;
