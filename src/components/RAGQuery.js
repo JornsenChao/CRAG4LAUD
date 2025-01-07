@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Input, Select, Button, Modal, message, Spin } from 'antd';
-// =============== 新增：导入 react-markdown 和 remark-gfm ================
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -10,62 +9,106 @@ const { TextArea } = Input;
 const { Option } = Select;
 const DOMAIN = 'http://localhost:9999';
 
-/**
- * RAGQuery:
- * - 负责把用户的 dependencyData、language 等信息发送给后端 /proRAG/query
- * - 将后端返回的 answer 显示在页面中
- * - 这里我们用 react-markdown 来渲染 answer (带 Markdown 语法)
- */
 const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
-  const [dependencyDesc, setDependencyDesc] = useState('');
+  // 用户输入的问题
+  const [userQuery, setUserQuery] = useState('');
   const [language, setLanguage] = useState('en');
-  const [loading, setLoading] = useState(false);
-  const [answer, setAnswer] = useState('');
-  const [promptPreview, setPromptPreview] = useState('');
-  const [promptModalVisible, setPromptModalVisible] = useState(false);
 
-  // 点击"RAG Query"按钮时调用
-  const handleQuery = async () => {
+  // 加载状态
+  const [loadingNormal, setLoadingNormal] = useState(false);
+  const [loadingCoT, setLoadingCoT] = useState(false);
+
+  // 普通RAG回答
+  const [answerNormal, setAnswerNormal] = useState('');
+  const [promptNormal, setPromptNormal] = useState('');
+
+  // 带CoT的RAG回答
+  const [answerCoT, setAnswerCoT] = useState('');
+  const [promptCoT, setPromptCoT] = useState('');
+
+  // 控制Modal
+  const [promptModalVisible, setPromptModalVisible] = useState(false);
+  const [promptModalContent, setPromptModalContent] = useState('');
+
+  // 点击按钮：普通 RAG Query
+  const handleQueryNormal = async () => {
     if (!fileKey) {
-      message.error('No fileKey, please build store first.');
-      return;
+      return message.error('No fileKey, please build store first.');
     }
-    setLoading(true);
-    setAnswer('');
-    setPromptPreview('');
+    setLoadingNormal(true);
+    setAnswerNormal('');
+    setPromptNormal('');
 
     try {
-      // 向后端发送 POST
       const res = await axios.post(`${DOMAIN}/proRAG/query`, {
         fileKey,
-        dependencyData, // 对象，包括 climateRisks, regulations 等
-        userQuery: dependencyDesc, // 这里是用户在此组件里的输入
+        dependencyData,
+        userQuery,
         language,
-        customFields, // 如果你在 ProRAG.jsx 中也收集了自定义字段，就传过来
+        customFields,
       });
       if (res.status === 200) {
-        // 后端返回 { answer, usedPrompt }
-        setAnswer(res.data.answer); // 这是 LLM 生成的 Markdown
-        setPromptPreview(res.data.usedPrompt);
+        setAnswerNormal(res.data.answer);
+        setPromptNormal(res.data.usedPrompt);
       }
     } catch (err) {
       console.error(err);
-      message.error('Query error');
+      message.error('Query (normal) error');
     } finally {
-      setLoading(false);
+      setLoadingNormal(false);
     }
+  };
+
+  // 点击按钮：RAG Query with CoT
+  const handleQueryCoT = async () => {
+    if (!fileKey) {
+      return message.error('No fileKey, please build store first.');
+    }
+    setLoadingCoT(true);
+    setAnswerCoT('');
+    setPromptCoT('');
+
+    try {
+      const res = await axios.post(`${DOMAIN}/proRAG/queryCoT`, {
+        fileKey,
+        dependencyData,
+        userQuery,
+        language,
+        customFields,
+      });
+      if (res.status === 200) {
+        setAnswerCoT(res.data.answer);
+        setPromptCoT(res.data.usedPrompt);
+      }
+    } catch (err) {
+      console.error(err);
+      message.error('Query (CoT) error');
+    } finally {
+      setLoadingCoT(false);
+    }
+  };
+
+  // 显示 Prompt 的 modal
+  const showPromptModal = (which) => {
+    if (which === 'normal') {
+      setPromptModalContent(promptNormal);
+    } else {
+      setPromptModalContent(promptCoT);
+    }
+    setPromptModalVisible(true);
   };
 
   return (
     <div>
       <div style={{ marginBottom: 10 }}>
-        <span>Enter your question or requests here:</span>
+        <p>Enter your question or requests here:</p>
         <TextArea
           rows={3}
-          value={dependencyDesc}
-          onChange={(e) => setDependencyDesc(e.target.value)}
+          value={userQuery}
+          onChange={(e) => setUserQuery(e.target.value)}
         />
       </div>
+
       <div style={{ marginBottom: 10 }}>
         <span>Answer language: </span>
         <Select
@@ -78,29 +121,55 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
           <Option value="es">Español</Option>
         </Select>
       </div>
-      <Button type="primary" onClick={handleQuery}>
+
+      {/* 两个按钮 */}
+      <Button
+        type="primary"
+        onClick={handleQueryNormal}
+        loading={loadingNormal}
+      >
         RAG Query
       </Button>
-      {loading && <Spin style={{ marginLeft: 10 }} />}
+      <Button
+        type="default"
+        onClick={handleQueryCoT}
+        loading={loadingCoT}
+        style={{ marginLeft: 10 }}
+      >
+        RAG Query with CoT
+      </Button>
 
-      {/* 如果有answer，就渲染 */}
-      {answer && (
+      {/* 普通回答 */}
+      {answerNormal && (
         <div style={{ marginTop: 20 }}>
-          <h4>Answer:</h4>
-          {/* 重点：用 ReactMarkdown + remarkGfm 渲染 Markdown */}
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
-        </div>
-      )}
-
-      {/* 如果 promptPreview 不为空，可提供一个按钮查看后端使用的Prompt */}
-      {promptPreview && (
-        <div style={{ marginTop: 20 }}>
-          <Button onClick={() => setPromptModalVisible(true)}>
+          <h4>Normal RAG Answer:</h4>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {answerNormal}
+          </ReactMarkdown>
+          <Button
+            style={{ marginTop: 8 }}
+            onClick={() => showPromptModal('normal')}
+          >
             Show Final Prompt
           </Button>
         </div>
       )}
 
+      {/* 带CoT回答 */}
+      {answerCoT && (
+        <div style={{ marginTop: 20 }}>
+          <h4>RAG + Chain of Thought Answer:</h4>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{answerCoT}</ReactMarkdown>
+          <Button
+            style={{ marginTop: 8 }}
+            onClick={() => showPromptModal('cot')}
+          >
+            Show CoT Prompt
+          </Button>
+        </div>
+      )}
+
+      {/* 查看Prompt的弹窗 */}
       <Modal
         title="Final Prompt Sent to LLM"
         visible={promptModalVisible}
@@ -111,13 +180,13 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
         <pre
           style={{
             whiteSpace: 'pre-wrap',
-            maxHeight: '400px',
+            maxHeight: 400,
             overflowY: 'auto',
             background: '#f9f9f9',
-            padding: '10px',
+            padding: 10,
           }}
         >
-          {promptPreview}
+          {promptModalContent}
         </pre>
       </Modal>
     </div>

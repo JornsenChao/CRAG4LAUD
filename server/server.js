@@ -6,7 +6,12 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { processFileAndSetVectorStore, chat, vectorStoresMap } from './chat.js';
-import { buildProRAGStore, proRAGQuery, proRAGStores } from './proRAG.js';
+import {
+  buildProRAGStore,
+  proRAGQuery,
+  proRAGQueryCoT,
+  proRAGStores,
+} from './proRAG.js';
 
 dotenv.config();
 const app = express();
@@ -159,6 +164,29 @@ app.post('/proRAG/query', async (req, res) => {
       customFields = [],
     } = req.body;
     const { answer, usedPrompt } = await proRAGQuery(
+      dependencyData,
+      userQuery,
+      fileKey,
+      language,
+      customFields
+    );
+    res.json({ answer, usedPrompt });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err.message);
+  }
+});
+app.post('/proRAG/queryCoT', async (req, res) => {
+  try {
+    const {
+      fileKey,
+      dependencyData,
+      userQuery,
+      language,
+      customFields = [],
+    } = req.body;
+
+    const { answer, usedPrompt } = await proRAGQueryCoT(
       dependencyData,
       userQuery,
       fileKey,

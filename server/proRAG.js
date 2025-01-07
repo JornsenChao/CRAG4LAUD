@@ -269,3 +269,135 @@ ${userQuery}
     usedPrompt,
   };
 }
+
+/**
+ * 2) 新增: proRAGQueryCoT (带Chain of Thought倾向的 RAG)
+ *   - 相比 proRAGQuery，多加“让模型先显示推理过程”之类的提示。
+ *   - 注意：模型可能并不真的显式打印全部思维链，也可能写在答案里。你可再做structured output处理
+ */
+export async function proRAGQueryCoT(
+  dependencyData,
+  userQuery,
+  fileKey,
+  language = 'en',
+  customFields = []
+) {
+  const store = proRAGStores.vectorStoreMap[fileKey];
+  if (!store) {
+    throw new Error(`No store found for fileKey="${fileKey}"`);
+  }
+
+  // 跟 proRAGQuery 类似地收集 dep/ref/str
+  let depTexts = [];
+  let refTexts = [];
+  let strTexts = [];
+
+  function distribute(obj) {
+    if (!obj || !obj.values) return;
+    const { values, type } = obj;
+    switch (type) {
+      case 'dependency':
+        depTexts.push(...values);
+        break;
+      case 'reference':
+        refTexts.push(...values);
+        break;
+      case 'strategy':
+        strTexts.push(...values);
+        break;
+      default:
+        break;
+    }
+  }
+
+  distribute(dependencyData.climateRisks);
+  distribute(dependencyData.regulations);
+  distribute(dependencyData.projectTypes);
+  distribute(dependencyData.environment);
+  distribute(dependencyData.scale);
+
+  const additionalText = dependencyData.additional || '';
+
+  customFields.forEach((cf) => {
+    switch (cf.fieldType) {
+      case 'dependency':
+        depTexts.push(`${cf.fieldName}: ${cf.fieldValue}`);
+        break;
+      case 'reference':
+        refTexts.push(`${cf.fieldName}: ${cf.fieldValue}`);
+        break;
+      case 'strategy':
+        strTexts.push(`${cf.fieldName}: ${cf.fieldValue}`);
+        break;
+      default:
+        break;
+    }
+  });
+
+  const combinedQuery = `
+[Chain of Thought Mode]
+
+User Dependencies: ${depTexts.join(', ')}
+User References: ${refTexts.join(', ')}
+User Strategies: ${strTexts.join(', ')}
+Additional Info: ${additionalText}
+
+User's question: ${userQuery}
+`.trim();
+
+  const docs = await store.similaritySearch(combinedQuery, 10);
+
+  const context = docs
+    .map(
+      (d, idx) => `
+---- Document #${idx + 1} ----
+Strategy (pageContent):
+${d.pageContent}
+DependencyInDoc: ${d.metadata.dependency}
+ReferenceInDoc : ${d.metadata.reference}
+`
+    )
+    .join('\n');
+
+  let langPrompt = '';
+  if (language === 'zh') langPrompt = 'Answer in Chinese.';
+  else if (language === 'en') langPrompt = 'Answer in English.';
+  else langPrompt = `Answer in ${language}.`;
+
+  // 这里我们加了一个"先写推理过程，再给最终答案"的指令
+  const template = `
+You are an expert consultant. 
+We want to see a chain of thought: 
+   1) Analyze the context step by step 
+   2) Summarize the references 
+   3) Provide the final short answer
+
+${langPrompt}
+Please respond in Markdown format. 
+If there's insufficient info, say "No more info available."
+
+=== Documents / Context ===
+${context}
+
+=== Chain of Thought ===
+First, reason it out step by step. Then, produce the final answer.
+
+User's question: ${userQuery}
+  `;
+
+  const model = new ChatOpenAI({
+    modelName: 'gpt-3.5-turbo',
+    openAIApiKey: process.env.OPENAI_API_KEY,
+  });
+  const chain = RetrievalQAChain.fromLLM(model, store.asRetriever(), {
+    prompt: PromptTemplate.fromTemplate(template),
+  });
+
+  const response = await chain.call({ query: combinedQuery });
+  const answer = response.text;
+
+  return {
+    answer,
+    usedPrompt: template,
+  };
+}
