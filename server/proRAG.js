@@ -208,8 +208,8 @@ User's question: ${userQuery}
 ---- Document #${idx + 1} ----
 Strategy (pageContent):
 ${d.pageContent}
-***REFERENCE***: ${d.metadata.dependency}
-***DEPENDENCY***: ${d.metadata.reference}
+***DEPENDENCY***: ${d.metadata.dependency}
+***REFERENCE***: ${d.metadata.reference}
 `
     )
     .join('\n');
