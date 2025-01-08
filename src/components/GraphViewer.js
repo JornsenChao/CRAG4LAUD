@@ -9,13 +9,11 @@ import CytoscapeComponent from 'react-cytoscapejs';
 const GraphViewer = ({ graphData }) => {
   // 将 graphData 转成 cytoscape 需要的 elements
   // elements: [{ data:{id,label} }, { data:{id,source,target}, }, ...]
-
   const elements = useMemo(() => {
     if (!graphData || !graphData.nodes) return [];
 
     const nodeElements = graphData.nodes.map((n) => ({
       data: { id: n.id, label: n.label, type: n.type },
-      // 也可以加 style/class depends on type
     }));
 
     const edgeElements = graphData.edges.map((e, index) => ({
@@ -31,6 +29,8 @@ const GraphViewer = ({ graphData }) => {
   }, [graphData]);
 
   const layout = { name: 'cose', animate: true };
+
+  // ====== 这里是关键，增加对 frameworkDimension 的样式 ======
   const stylesheet = [
     {
       selector: 'node',
@@ -59,6 +59,14 @@ const GraphViewer = ({ graphData }) => {
       selector: 'node[type="reference"]',
       style: {
         'background-color': '#2ca02c',
+      },
+    },
+    {
+      // 新增: 匹配后端返回的 frameworkDimension 节点
+      selector: 'node[type="frameworkDimension"]',
+      style: {
+        'background-color': '#9467bd',
+        shape: 'diamond',
       },
     },
     {

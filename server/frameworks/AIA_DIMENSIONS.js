@@ -3,7 +3,7 @@ export const AIA_DIMENSIONS = [
   {
     id: 'designForIntegration',
     name: 'Design for Integration',
-    keywords: ['integrat', 'big idea'],
+    keywords: ['integration', 'big idea'],
     description:
       'Good design elevates any project, no matter how small, with a thoughtful process that delivers both beauty and function in balance. It is the element that binds all the principles together with a big idea.',
   },

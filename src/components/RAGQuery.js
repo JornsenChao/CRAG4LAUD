@@ -33,6 +33,7 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
   const [promptModalContent, setPromptModalContent] = useState('');
 
   const [graphData, setGraphData] = useState(null);
+  const [selectedFramework, setSelectedFramework] = useState('');
   // 点击按钮：普通 RAG Query
   const handleQueryNormal = async () => {
     if (!fileKey) {
@@ -55,12 +56,14 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
         userQuery,
         language,
         customFields,
+        selectedFramework,
       });
       if (res.status === 200) {
         setAnswerNormal(res.data.answer);
         setPromptNormal(res.data.usedPrompt);
         if (res.data.graphData && res.data.graphData.nodes) {
           setGraphData(res.data.graphData);
+          console.log(res.data.graphData);
         } else {
           setGraphData({ nodes: [], edges: [] });
         }
@@ -138,6 +141,20 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
           <Option value="en">English</Option>
           <Option value="zh">中文</Option>
           <Option value="es">Español</Option>
+        </Select>
+      </div>
+
+      {/* ============ 在这里新增一个选择框架的下拉 ============ */}
+      <div style={{ marginBottom: 10 }}>
+        <span>Framework: </span>
+        <Select
+          style={{ width: 200 }}
+          value={selectedFramework}
+          onChange={(val) => setSelectedFramework(val)}
+        >
+          <Option value="">No Framework (none)</Option>
+          <Option value="AIA">AIA Framework for Design Excellence</Option>
+          {/* 你以后也可以在这里加更多选项 */}
         </Select>
       </div>
 

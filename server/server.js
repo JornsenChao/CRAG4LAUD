@@ -162,13 +162,15 @@ app.post('/proRAG/query', async (req, res) => {
       userQuery,
       language,
       customFields = [],
+      selectedFramework = '',
     } = req.body;
     const { answer, usedPrompt, graphData } = await proRAGQuery(
       dependencyData,
       userQuery,
       fileKey,
       language,
-      customFields
+      customFields,
+      selectedFramework
     );
     res.json({ answer, usedPrompt, graphData });
   } catch (err) {

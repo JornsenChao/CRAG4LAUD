@@ -11,6 +11,8 @@ import { PromptTemplate } from 'langchain/prompts';
 import { RetrievalQAChain } from 'langchain/chains';
 import { Document } from 'langchain/document';
 
+import { loadFrameworkData } from './frameworks/frameworkManager.js';
+
 // 用于获取 __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -102,8 +104,83 @@ export async function buildProRAGStore(filePath, fileKey, columnMap) {
     `[ProRAG] store built for fileKey=${fileKey}, docCount=${docs.length}`
   );
 }
+/**
+ * 新增: matchFrameworkDimensions() 函数
+ * @param {string} text - Strategy的内容
+ * @param {Array} dims - e.g. [ {id, name, keywords, description}, ... ]
+ * @returns {Array} 命中的维度对象
+ */
+function matchFrameworkDimensions(text, dims) {
+  const lowerText = text.toLowerCase();
+  const matched = [];
+  for (const dim of dims) {
+    // 如果keywords里有任意一个匹配到，就算命中
+    const hits = dim.keywords.filter((kw) =>
+      lowerText.includes(kw.toLowerCase())
+    );
+    if (hits.length > 0) {
+      matched.push(dim);
+    }
+  }
+  return matched;
+}
+/**
+ * 1) 计算 embeddings:
+ *   - 对每个 dimension: 维度名称 + 描述 => 向量
+ *   - 对每个 doc: pageContent => 向量
+ *   - 对比相似度 => 过阈值即匹配
+ *
+ * @param {string} text  - Strategy的正文
+ * @param {Array} dims   - [{id, name, description, ...}, ...]
+ * @param {object} embedder - langchain embeddings实例 (OpenAIEmbeddings 或其他)
+ * @param {number} threshold - 相似度阈值 (0~1之间, 可以调试)
+ * @returns {Array} matchedDims - 返回匹配到的所有 dimension 对象
+ */
+async function semanticMatchFrameworkDimensions(
+  text,
+  dims,
+  embedder,
+  threshold = 0.78
+) {
+  if (!dims || dims.length === 0) return [];
+
+  // 1) 为当前 doc 的文本生成 embedding
+  const docVector = await embedder.embedQuery(text);
+
+  // 2) 逐个与 dimension 的 embedding 做余弦相似度
+  const matched = [];
+  for (const dim of dims) {
+    // 如果 dimension 没预先算好 embedding，就算一下
+    if (!dim._embedding) {
+      const dimText = dim.name + '. ' + (dim.description || '');
+      dim._embedding = await embedder.embedQuery(dimText);
+    }
+    // 计算相似度
+    const score = cosineSimilarity(docVector, dim._embedding);
+    if (score >= threshold) {
+      matched.push(dim);
+    }
+  }
+  return matched;
+}
+
+/**
+ * 2) 计算向量余弦相似度 (简单实现)
+ */
+function cosineSimilarity(vecA, vecB) {
+  // vecA, vecB 是等长数组
+  let dot = 0.0;
+  let normA = 0.0;
+  let normB = 0.0;
+  for (let i = 0; i < vecA.length; i++) {
+    dot += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
 // ============== 2) 辅助函数：把 docs 转成图数据 ==============
-function buildGraphDataFromDocs(docs) {
+function buildGraphDataFromDocs(docs, selectedFramework) {
   /**
    * 让每条doc => Strategy Node
    * doc.metadata.dependency => Dependency Node(s)
@@ -117,6 +194,20 @@ function buildGraphDataFromDocs(docs) {
 
   const nodesMap = {}; // key: "type:label", value: { id, label, type }
   const edges = [];
+  // 如果有 selectedFramework，就尝试加载
+  let frameworkData = null;
+  if (selectedFramework) {
+    frameworkData = loadFrameworkData(selectedFramework);
+    if (!frameworkData) {
+      console.log(
+        `[ProRAG] framework "${selectedFramework}" not found. Skipping...`
+      );
+    } else {
+      console.log(`[ProRAG] using framework "${selectedFramework}"`);
+      console.log('selectedFramework:', selectedFramework);
+      console.log('frameworkData:', frameworkData);
+    }
+  }
 
   docs.forEach((doc, idx) => {
     if (!doc) {
@@ -186,6 +277,30 @@ function buildGraphDataFromDocs(docs) {
         relation: 'references',
       });
     });
+
+    // 3) 如果启用了 frameworkData，就做关键字匹配
+    if (frameworkData && frameworkData.dimensions) {
+      const matchedDims = matchFrameworkDimensions(
+        doc.pageContent,
+        frameworkData.dimensions
+      );
+      console.log(`doc #${idx} matched dims:`, matchedDims);
+      matchedDims.forEach((dim) => {
+        const dimId = `framework-${dim.id}`;
+        if (!nodesMap[dimId]) {
+          nodesMap[dimId] = {
+            id: dimId,
+            label: dim.name,
+            type: 'frameworkDimension', // 你也可以叫 'frameworkNode'
+          };
+        }
+        edges.push({
+          source: strategyId,
+          target: dimId,
+          relation: 'alignedWith',
+        });
+      });
+    }
   });
 
   // 将nodesMap转成数组
@@ -206,7 +321,8 @@ export async function proRAGQuery(
   userQuery,
   fileKey,
   language = 'en',
-  customFields = []
+  customFields = [],
+  selectedFramework = ''
 ) {
   // 获取对应的向量索引
   const store = proRAGStores.vectorStoreMap[fileKey];
@@ -290,7 +406,7 @@ User's question: ${userQuery}
 
   // =============== 4. 相似度检索 =============== //
   const docs = await store.similaritySearch(combinedQuery, 10);
-  const graphData = buildGraphDataFromDocs(docs);
+  const graphData = buildGraphDataFromDocs(docs, selectedFramework);
   // 整理 chunk 作为上下文
   const context = docs
     .map(
