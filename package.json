@@ -1,5 +1,5 @@
 {
-  "name": "ChatRAG",
+  "name": "chatrag",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -10,14 +10,19 @@
     "axios": "^1.5.0",
     "concurrently": "^8.2.1",
     "cytoscape": "^3.30.4",
+    "d3": "^7.9.0",
+    "echarts": "^5.6.0",
+    "echarts-for-react": "^3.0.2",
     "react": "^18.2.0",
     "react-cytoscapejs": "^2.0.0",
     "react-dom": "^18.2.0",
+    "react-force-graph": "^1.45.4",
     "react-markdown": "^9.0.3",
     "react-scripts": "5.0.1",
     "react-speech-recognition": "^3.10.0",
     "remark-gfm": "^4.0.0",
     "speak-tts": "^2.0.8",
+    "three": "^0.172.0",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
   },

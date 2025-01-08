@@ -33,6 +33,7 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
 
   // 管理 graph
   const [graphData, setGraphData] = useState(null);
+  const [selectedLibrary, setSelectedLibrary] = useState('cytoscape');
   const [selectedFramework, setSelectedFramework] = useState('');
   // 控制Modal
   const [promptModalVisible, setPromptModalVisible] = useState(false);
@@ -87,21 +88,21 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
   // === View in Graph (第 5 步) ===
   const handleViewInGraph = async () => {
     if (!docs || docs.length === 0) {
-      message.warning('No docs to visualize. Please query first.');
+      message.warning('No docs to visualize. Please do RAG query first.');
       return;
     }
     try {
       const body = {
-        docs, // 直接把 docs 发给后端
+        docs,
         frameworkName: selectedFramework, // e.g. "AIA" or ""
       };
       const res = await axios.post(`${DOMAIN}/proRAG/buildGraph`, body);
-      // 返回 { graphData: { nodes, edges } }
+      // { graphData: {nodes, edges} }
       setGraphData(res.data.graphData);
-      message.success('Graph generated!');
+      message.success('Graph built!');
     } catch (err) {
       console.error(err);
-      message.error('Build graph error');
+      message.error('Graph build error');
     }
   };
 
@@ -173,7 +174,7 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
         </Select>
       </div>
       {/* 这里让用户可选 framework */}
-      <div style={{ marginBottom: 10 }}>
+      {/* <div style={{ marginBottom: 10 }}>
         <span>Framework: </span>
         <Select
           style={{ width: 180 }}
@@ -181,18 +182,6 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
           onChange={(val) => setSelectedFramework(val)}
         >
           <Option value="">(none)</Option>
-          <Option value="AIA">AIA Framework for Design Excellence</Option>
-        </Select>
-      </div>
-      {/* ============ 在这里新增一个选择框架的下拉 ============ */}
-      {/* <div style={{ marginBottom: 10 }}>
-        <span>Framework: </span>
-        <Select
-          style={{ width: 200 }}
-          value={selectedFramework}
-          onChange={(val) => setSelectedFramework(val)}
-        >
-          <Option value="">No Framework (none)</Option>
           <Option value="AIA">AIA Framework for Design Excellence</Option>
         </Select>
       </div> */}
@@ -269,18 +258,61 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
           {promptModalContent}
         </pre>
       </Modal>
-      {/* 一个按钮：View in Graph */}
-      <Button style={{ marginTop: 20 }} onClick={handleViewInGraph}>
+
+      {/* <Button style={{ marginTop: 20 }} onClick={handleViewInGraph}>
         View in Graph (based on docs found in RAG query step)
       </Button>
 
-      {/* 显示 Graph */}
       {graphData && (
         <div style={{ marginTop: 20 }}>
           <h4>Knowledge Graph:</h4>
-          <GraphViewer graphData={graphData} />
+          <GraphViewer library="cytoscape" graphData={graphData} />
         </div>
-      )}
+      )} */}
+      {/* step 5 */}
+      <div
+        style={{ marginTop: 30, borderTop: '1px solid #ccc', paddingTop: 10 }}
+      >
+        <h3>Step 5: Build & View Graph</h3>
+        <p>
+          Use docs from above result, optionally apply a framework, choose
+          library, then build & visualize.
+        </p>
+
+        <div style={{ marginBottom: 10 }}>
+          <span>Framework: </span>
+          <Select
+            style={{ width: 180 }}
+            value={selectedFramework}
+            onChange={(val) => setSelectedFramework(val)}
+          >
+            <Option value="">(none)</Option>
+            <Option value="AIA">AIA Framework</Option>
+          </Select>
+        </div>
+
+        <div style={{ marginBottom: 10 }}>
+          <span>Graph Library: </span>
+          <Select
+            style={{ width: 180 }}
+            value={selectedLibrary}
+            onChange={(val) => setSelectedLibrary(val)}
+          >
+            <Option value="cytoscape">Cytoscape</Option>
+            <option value="d3">D3 Force</option>
+            <option value="force3d">React Force Graph (3D)</option>
+            <option value="echarts">ECharts</option>
+          </Select>
+        </div>
+
+        <Button onClick={handleViewInGraph}>View in Graph</Button>
+
+        {graphData && (
+          <div style={{ marginTop: 20 }}>
+            <GraphViewer library={selectedLibrary} graphData={graphData} />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
