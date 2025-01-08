@@ -20,6 +20,9 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
   const [loadingNormal, setLoadingNormal] = useState(false);
   const [loadingCoT, setLoadingCoT] = useState(false);
 
+  // LLM 找到的文档
+  const [docs, setDocs] = useState([]);
+
   // 普通RAG回答
   const [answerNormal, setAnswerNormal] = useState('');
   const [promptNormal, setPromptNormal] = useState('');
@@ -32,8 +35,9 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
   const [promptModalVisible, setPromptModalVisible] = useState(false);
   const [promptModalContent, setPromptModalContent] = useState('');
 
-  const [graphData, setGraphData] = useState(null);
-  const [selectedFramework, setSelectedFramework] = useState('');
+  // const [graphData, setGraphData] = useState(null);
+  // const [selectedFramework, setSelectedFramework] = useState('');
+
   // 点击按钮：普通 RAG Query
   const handleQueryNormal = async () => {
     if (!fileKey) {
@@ -47,7 +51,7 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
     setLoadingNormal(true);
     setAnswerNormal('');
     setPromptNormal('');
-    setGraphData(null);
+    // setGraphData(null);
 
     try {
       const res = await axios.post(`${DOMAIN}/proRAG/query`, {
@@ -56,17 +60,18 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
         userQuery,
         language,
         customFields,
-        selectedFramework,
+        // selectedFramework,
       });
       if (res.status === 200) {
         setAnswerNormal(res.data.answer);
         setPromptNormal(res.data.usedPrompt);
-        if (res.data.graphData && res.data.graphData.nodes) {
-          setGraphData(res.data.graphData);
-          console.log(res.data.graphData);
-        } else {
-          setGraphData({ nodes: [], edges: [] });
-        }
+        setDocs(res.data.docs || []);
+        // if (res.data.graphData && res.data.graphData.nodes) {
+        //   setGraphData(res.data.graphData);
+        //   console.log(res.data.graphData);
+        // } else {
+        //   setGraphData({ nodes: [], edges: [] });
+        // }
       }
     } catch (err) {
       console.error(err);
@@ -145,7 +150,7 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
       </div>
 
       {/* ============ 在这里新增一个选择框架的下拉 ============ */}
-      <div style={{ marginBottom: 10 }}>
+      {/* <div style={{ marginBottom: 10 }}>
         <span>Framework: </span>
         <Select
           style={{ width: 200 }}
@@ -154,9 +159,8 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
         >
           <Option value="">No Framework (none)</Option>
           <Option value="AIA">AIA Framework for Design Excellence</Option>
-          {/* 你以后也可以在这里加更多选项 */}
         </Select>
-      </div>
+      </div> */}
 
       {/* 两个按钮 */}
       <Button
@@ -204,12 +208,12 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
           </Button>
         </div>
       )}
-      {graphData ? (
+      {/* {graphData ? (
         <div style={{ marginTop: 20 }}>
           <h4>Knowledge Graph (Cytoscape)</h4>
           <GraphViewer graphData={graphData} />
         </div>
-      ) : null}
+      ) : null} */}
       {/* 查看Prompt的弹窗 */}
       <Modal
         title="Final Prompt Sent to LLM"

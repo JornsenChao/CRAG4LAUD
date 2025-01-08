@@ -11,7 +11,7 @@ import { PromptTemplate } from 'langchain/prompts';
 import { RetrievalQAChain } from 'langchain/chains';
 import { Document } from 'langchain/document';
 
-import { loadFrameworkData } from './frameworks/frameworkManager.js';
+// import { loadFrameworkData } from './frameworks/frameworkManager.js';
 
 // 用于获取 __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -321,8 +321,8 @@ export async function proRAGQuery(
   userQuery,
   fileKey,
   language = 'en',
-  customFields = [],
-  selectedFramework = ''
+  customFields = []
+  // selectedFramework = ''
 ) {
   // 获取对应的向量索引
   const store = proRAGStores.vectorStoreMap[fileKey];
@@ -406,7 +406,7 @@ User's question: ${userQuery}
 
   // =============== 4. 相似度检索 =============== //
   const docs = await store.similaritySearch(combinedQuery, 10);
-  const graphData = buildGraphDataFromDocs(docs, selectedFramework);
+  // const graphData = buildGraphDataFromDocs(docs, selectedFramework);
   // 整理 chunk 作为上下文
   const context = docs
     .map(
@@ -480,7 +480,8 @@ ${userQuery}
   return {
     answer,
     usedPrompt,
-    graphData,
+    // graphData,
+    docs, // 把 LLM 找到的 docs 传回前端
   };
 }
 
