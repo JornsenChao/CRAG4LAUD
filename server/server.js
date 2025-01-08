@@ -12,6 +12,7 @@ import {
   proRAGQueryCoT,
   proRAGStores,
 } from './proRAG.js';
+import { buildGraphDataFromDocs } from './proRAGGraph.js';
 
 dotenv.config();
 const app = express();
@@ -175,6 +176,23 @@ app.post('/proRAG/query', async (req, res) => {
     res.json({ answer, usedPrompt, docs });
   } catch (err) {
     console.error(err);
+    res.status(500).send(err.message);
+  }
+});
+//  View in Graph
+app.post('/proRAG/buildGraph', async (req, res) => {
+  try {
+    const { docs, frameworkName } = req.body;
+    // docs: array of { pageContent, metadata } from front-end
+    // frameworkName: 'AIA' or ''
+
+    // 调用我们新写的函数
+    const graphData = await buildGraphDataFromDocs(docs, frameworkName);
+
+    // 返回
+    res.json({ graphData });
+  } catch (err) {
+    console.error('Error building graph:', err);
     res.status(500).send(err.message);
   }
 });

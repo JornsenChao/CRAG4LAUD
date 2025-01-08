@@ -31,6 +31,9 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
   const [answerCoT, setAnswerCoT] = useState('');
   const [promptCoT, setPromptCoT] = useState('');
 
+  // 管理 graph
+  const [graphData, setGraphData] = useState(null);
+  const [selectedFramework, setSelectedFramework] = useState('');
   // 控制Modal
   const [promptModalVisible, setPromptModalVisible] = useState(false);
   const [promptModalContent, setPromptModalContent] = useState('');
@@ -78,6 +81,27 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
       message.error('Query (normal) error');
     } finally {
       setLoadingNormal(false);
+    }
+  };
+
+  // === View in Graph (第 5 步) ===
+  const handleViewInGraph = async () => {
+    if (!docs || docs.length === 0) {
+      message.warning('No docs to visualize. Please query first.');
+      return;
+    }
+    try {
+      const body = {
+        docs, // 直接把 docs 发给后端
+        frameworkName: selectedFramework, // e.g. "AIA" or ""
+      };
+      const res = await axios.post(`${DOMAIN}/proRAG/buildGraph`, body);
+      // 返回 { graphData: { nodes, edges } }
+      setGraphData(res.data.graphData);
+      message.success('Graph generated!');
+    } catch (err) {
+      console.error(err);
+      message.error('Build graph error');
     }
   };
 
@@ -148,7 +172,18 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
           <Option value="es">Español</Option>
         </Select>
       </div>
-
+      {/* 这里让用户可选 framework */}
+      <div style={{ marginBottom: 10 }}>
+        <span>Framework: </span>
+        <Select
+          style={{ width: 180 }}
+          value={selectedFramework}
+          onChange={(val) => setSelectedFramework(val)}
+        >
+          <Option value="">(none)</Option>
+          <Option value="AIA">AIA Framework for Design Excellence</Option>
+        </Select>
+      </div>
       {/* ============ 在这里新增一个选择框架的下拉 ============ */}
       {/* <div style={{ marginBottom: 10 }}>
         <span>Framework: </span>
@@ -234,6 +269,18 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
           {promptModalContent}
         </pre>
       </Modal>
+      {/* 一个按钮：View in Graph */}
+      <Button style={{ marginTop: 20 }} onClick={handleViewInGraph}>
+        View in Graph (based on docs found in RAG query step)
+      </Button>
+
+      {/* 显示 Graph */}
+      {graphData && (
+        <div style={{ marginTop: 20 }}>
+          <h4>Knowledge Graph:</h4>
+          <GraphViewer graphData={graphData} />
+        </div>
+      )}
     </div>
   );
 };

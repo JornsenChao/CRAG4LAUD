@@ -85,7 +85,7 @@ const GraphViewer = ({ graphData }) => {
   ];
 
   return (
-    <div style={{ width: '100%', height: '400px', border: '1px solid #ccc' }}>
+    <div style={{ width: '100%', height: '800px', border: '1px solid #ccc' }}>
       <CytoscapeComponent
         elements={elements}
         style={{ width: '100%', height: '100%' }}
