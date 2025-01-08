@@ -5,6 +5,8 @@ import { Input, Select, Button, Modal, message, Spin } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import GraphViewer from './GraphViewer';
+
 const { TextArea } = Input;
 const { Option } = Select;
 const DOMAIN = 'http://localhost:9999';
@@ -30,6 +32,7 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
   const [promptModalVisible, setPromptModalVisible] = useState(false);
   const [promptModalContent, setPromptModalContent] = useState('');
 
+  const [graphData, setGraphData] = useState(null);
   // 点击按钮：普通 RAG Query
   const handleQueryNormal = async () => {
     if (!fileKey) {
@@ -50,6 +53,7 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
       if (res.status === 200) {
         setAnswerNormal(res.data.answer);
         setPromptNormal(res.data.usedPrompt);
+        setGraphData(res.data.graphData);
       }
     } catch (err) {
       console.error(err);
@@ -168,7 +172,12 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
           </Button>
         </div>
       )}
-
+      {graphData ? (
+        <div style={{ marginTop: 20 }}>
+          <h4>Knowledge Graph (Cytoscape)</h4>
+          <GraphViewer graphData={graphData} />
+        </div>
+      ) : null}
       {/* 查看Prompt的弹窗 */}
       <Modal
         title="Final Prompt Sent to LLM"

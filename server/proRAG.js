@@ -102,7 +102,93 @@ export async function buildProRAGStore(filePath, fileKey, columnMap) {
     `[ProRAG] store built for fileKey=${fileKey}, docCount=${docs.length}`
   );
 }
+// ============== 2) 辅助函数：把 docs 转成图数据 ==============
+function buildGraphDataFromDocs(docs) {
+  /**
+   * 让每条doc => Strategy Node
+   * doc.metadata.dependency => Dependency Node(s)
+   * doc.metadata.reference => Reference Node(s)
+   * edges:
+   *   Strategy --(addresses)--> Dependency
+   *   Strategy --(references)--> Reference
+   *
+   * 为了去重，我们用一个 Map / dict 来存已经出现的节点
+   */
 
+  const nodesMap = {}; // key: "type:label", value: { id, label, type }
+  const edges = [];
+
+  docs.forEach((doc, idx) => {
+    // 1) Strategy node
+    const strategyLabel =
+      doc.pageContent.slice(0, 80).replace(/\n/g, ' ') ||
+      `Strategy #${idx + 1}`;
+    // 生成唯一ID
+    const strategyId = `strategy-${idx}`;
+    // 存入 nodesMap
+    if (!nodesMap[strategyId]) {
+      nodesMap[strategyId] = {
+        id: strategyId,
+        label: strategyLabel,
+        type: 'strategy',
+      };
+    }
+
+    // 2) Dependency
+    // 可能有多个, 用逗号拆分
+    const dependencyStr = doc.metadata.dependency || '';
+    const dependencyArr = dependencyStr
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    dependencyArr.forEach((dep) => {
+      const depId = `dependency-${dep}`;
+      if (!nodesMap[depId]) {
+        nodesMap[depId] = {
+          id: depId,
+          label: dep,
+          type: 'dependency',
+        };
+      }
+      // edge
+      edges.push({
+        source: strategyId,
+        target: depId,
+        relation: 'addresses', // or "hasDependency"
+      });
+    });
+
+    // 3) Reference
+    // 也可能多个
+    const referenceStr = doc.metadata.reference || '';
+    const referenceArr = referenceStr
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    referenceArr.forEach((ref) => {
+      const refId = `reference-${ref}`;
+      if (!nodesMap[refId]) {
+        nodesMap[refId] = {
+          id: refId,
+          label: ref,
+          type: 'reference',
+        };
+      }
+      edges.push({
+        source: strategyId,
+        target: refId,
+        relation: 'references',
+      });
+    });
+  });
+
+  // 将nodesMap转成数组
+  const nodes = Object.values(nodesMap);
+
+  return { nodes, edges };
+}
 /**
  * proRAGQuery():
  *  - 从前端接收 dependencyData + customFields + userQuery
@@ -200,7 +286,7 @@ User's question: ${userQuery}
 
   // =============== 4. 相似度检索 =============== //
   const docs = await store.similaritySearch(combinedQuery, 10);
-
+  const graphData = buildGraphDataFromDocs(docs);
   // 整理 chunk 作为上下文
   const context = docs
     .map(
@@ -274,6 +360,7 @@ ${userQuery}
   return {
     answer,
     usedPrompt,
+    graphData,
   };
 }
 

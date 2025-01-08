@@ -1,5 +1,5 @@
 // src/components/DependencySelector.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Checkbox, Input, Button, Select } from 'antd';
 
 const { TextArea } = Input;
@@ -80,9 +80,10 @@ const DependencySelector = ({ onChange }) => {
   });
 
   // 当任何状态变更时，都合并所有数据给父组件
+  const prevDataRef = useRef();
   useEffect(() => {
     // 合并
-    const dependencyData = {
+    const newData = {
       climateRisks: climateRisksData, // { values, type }
       regulations: regulationsData,
       projectTypes: projectTypesData,
@@ -90,7 +91,11 @@ const DependencySelector = ({ onChange }) => {
       scale: scaleData,
       additional, // 字符串
     };
-    onChange?.(dependencyData);
+    // 比较
+    if (JSON.stringify(prevDataRef.current) !== JSON.stringify(newData)) {
+      prevDataRef.current = newData;
+      onChange?.(newData);
+    }
   }, [
     climateRisksData,
     regulationsData,
