@@ -38,9 +38,15 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
     if (!fileKey) {
       return message.error('No fileKey, please build store first.');
     }
+    if (!userQuery.trim()) {
+      // 如果用户没输入任何文字
+      message.warning('Please type something in the query box!');
+      return; // 不执行请求
+    }
     setLoadingNormal(true);
     setAnswerNormal('');
     setPromptNormal('');
+    setGraphData(null);
 
     try {
       const res = await axios.post(`${DOMAIN}/proRAG/query`, {
@@ -53,7 +59,11 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
       if (res.status === 200) {
         setAnswerNormal(res.data.answer);
         setPromptNormal(res.data.usedPrompt);
-        setGraphData(res.data.graphData);
+        if (res.data.graphData && res.data.graphData.nodes) {
+          setGraphData(res.data.graphData);
+        } else {
+          setGraphData({ nodes: [], edges: [] });
+        }
       }
     } catch (err) {
       console.error(err);
@@ -67,6 +77,11 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
   const handleQueryCoT = async () => {
     if (!fileKey) {
       return message.error('No fileKey, please build store first.');
+    }
+    if (!userQuery.trim()) {
+      // 如果用户没输入任何文字
+      message.warning('Please type something in the query box!');
+      return; // 不执行请求
     }
     setLoadingCoT(true);
     setAnswerCoT('');

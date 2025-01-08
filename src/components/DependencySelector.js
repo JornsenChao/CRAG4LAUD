@@ -14,27 +14,26 @@ const climateRiskOptions = [
 ];
 
 const regulatoryOptions = [
-  { label: '建筑高度限制', value: 'height limit' },
-  { label: '湿地保护区', value: 'wetland' },
-  { label: '饮用水源地保护', value: 'drinking water source' },
+  { label: 'Building Height Limit', value: 'height limit' },
+  { label: 'Nature Reserve', value: 'wetland' },
 ];
 
 const projectTypeOptions = [
-  { label: '公共建筑', value: 'public building' },
-  { label: '居住区', value: 'residential' },
-  { label: '商业综合体', value: 'commercial complex' },
+  { label: 'Civic Infrastructure', value: 'public building' },
+  { label: 'Residential', value: 'residential' },
+  { label: 'Commercial', value: 'commercial complex' },
 ];
 
 const environmentOptions = [
-  { label: '沿海', value: 'coastal' },
-  { label: '内陆', value: 'inland' },
-  { label: '山地', value: 'mountain' },
+  { label: 'Coastal', value: 'coastal' },
+  { label: 'Inland', value: 'inland' },
+  { label: 'Alpine', value: 'mountain' },
 ];
 
 const scaleOptions = [
-  { label: '小型场地', value: 'small-scale site' },
-  { label: '中型场地', value: 'medium-scale site' },
-  { label: '大型区域', value: 'large-scale region' },
+  { label: 'Site', value: 'small-scale site' },
+  { label: 'Building', value: 'medium-scale site' },
+  { label: 'Campus', value: 'large-scale region' },
 ];
 
 /**

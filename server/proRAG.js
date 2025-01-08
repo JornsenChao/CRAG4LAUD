@@ -119,6 +119,10 @@ function buildGraphDataFromDocs(docs) {
   const edges = [];
 
   docs.forEach((doc, idx) => {
+    if (!doc) {
+      console.log('Warning: one doc is null at index', idx);
+      return; // 跳过
+    }
     // 1) Strategy node
     const strategyLabel =
       doc.pageContent.slice(0, 80).replace(/\n/g, ' ') ||
