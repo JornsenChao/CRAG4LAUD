@@ -299,8 +299,8 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
             onChange={(val) => setSelectedLibrary(val)}
           >
             <Option value="cytoscape">Cytoscape</Option>
-            <option value="d3">D3 Force</option>
-            <option value="force3d">React Force Graph (3D)</option>
+            <option value="d3Force">D3 Force</option>
+            <option value="ReactForceGraph3d">React Force Graph (3D)</option>
             <option value="echarts">ECharts</option>
           </Select>
         </div>

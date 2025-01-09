@@ -220,17 +220,22 @@ function GraphViewerCytoscape({ graphData }) {
 }
 function GraphViewerD3Force({ graphData }) {
   const svgRef = useRef(null);
-  const width = 400,
-    height = 400;
+  const width = 600;
+  const height = 500;
 
   useEffect(() => {
     if (!graphData || !graphData.nodes?.length) return;
 
-    const svgEl = d3.select(svgRef.current);
-    svgEl.selectAll('*').remove(); // clear old
+    // 1) 计算节点度
+    computeNodeDegrees(graphData);
 
-    // Convert edges to d3-friendly format
+    const svg = d3.select(svgRef.current);
+    svg.selectAll('*').remove();
+
+    const container = svg.append('g');
+
     const links = graphData.edges.map((e) => ({
+      ...e,
       source: e.source,
       target: e.target,
     }));
@@ -243,47 +248,59 @@ function GraphViewerD3Force({ graphData }) {
         d3
           .forceLink(links)
           .id((d) => d.id)
-          .distance(50)
+          .distance(80)
       )
-      .force('charge', d3.forceManyBody().strength(-100))
+      .force('charge', d3.forceManyBody().strength(-200))
       .force('center', d3.forceCenter(width / 2, height / 2));
 
-    const linkGroup = svgEl.append('g').attr('stroke', '#999');
+    // =========== links =========== //
+    const linkGroup = container.append('g').attr('class', 'links');
     const linkElems = linkGroup
       .selectAll('line')
       .data(links)
       .enter()
       .append('line')
-      .attr('stroke-width', 1.5);
+      .attr('stroke', '#999')
+      .attr('stroke-width', 2.0)
+      .attr('stroke-opacity', 0.8);
 
-    const nodeGroup = svgEl
-      .append('g')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 1.5);
+    // =========== nodes =========== //
+    const nodeGroup = container.append('g').attr('class', 'nodes');
     const nodeElems = nodeGroup
       .selectAll('circle')
       .data(nodes)
       .enter()
       .append('circle')
-      .attr('r', 10)
-      .attr('fill', '#1f77b4')
+      .attr('r', (d) => {
+        // 缓存半径到 d.radius
+        d.radius = 1 + Math.log2(d.degree + 1) * 5;
+        if (d.radius < 5) d.radius = 5; // 避免度太低时过小
+        return d.radius;
+      })
+      .attr('fill', (d) => getTypeColor(d.type))
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 1.5)
       .call(
         d3
           .drag()
-          .on('start', dragstarted)
+          .on('start', dragStarted)
           .on('drag', dragged)
-          .on('end', dragended)
+          .on('end', dragEnded)
       );
 
-    const labelElems = nodeGroup
+    // =========== labels =========== //
+    const labelGroup = container.append('g').attr('class', 'labels');
+    const labelElems = labelGroup
       .selectAll('text')
       .data(nodes)
       .enter()
       .append('text')
-      .attr('x', 12)
-      .attr('y', '0.31em')
       .text((d) => d.label || d.id)
-      .style('font-size', '10px');
+      // 文字颜色：比节点颜色浅一点
+      .attr('fill', (d) => lightenColor(getTypeColor(d.type), 0.4))
+      // 让鼠标事件不会阻挡拖拽
+      .style('pointer-events', 'none')
+      .style('font-size', '12px');
 
     simulation.on('tick', () => {
       linkElems
@@ -294,10 +311,23 @@ function GraphViewerD3Force({ graphData }) {
 
       nodeElems.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
 
-      labelElems.attr('x', (d) => d.x + 12).attr('y', (d) => d.y);
+      // **2) label 偏移：让文字在右上角
+      labelElems
+        .attr('x', (d) => d.x + d.radius + 3) // 3 像素缓冲
+        .attr('y', (d) => d.y - d.radius * 0.1);
+      // 让文字稍微和圆心对齐，避免压住了节点
     });
 
-    function dragstarted(event, d) {
+    // 缩放 & 平移
+    const zoom = d3
+      .zoom()
+      .scaleExtent([0.3, 3])
+      .on('zoom', (event) => {
+        container.attr('transform', event.transform);
+      });
+    svg.call(zoom).call(zoom.transform, d3.zoomIdentity);
+
+    function dragStarted(event, d) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       d.fx = d.x;
       d.fy = d.y;
@@ -306,7 +336,7 @@ function GraphViewerD3Force({ graphData }) {
       d.fx = event.x;
       d.fy = event.y;
     }
-    function dragended(event, d) {
+    function dragEnded(event, d) {
       if (!event.active) simulation.alphaTarget(0);
       d.fx = null;
       d.fy = null;
@@ -322,7 +352,7 @@ function GraphViewerD3Force({ graphData }) {
       ref={svgRef}
       width={width}
       height={height}
-      style={{ border: '1px solid #ccc' }}
+      style={{ border: '1px solid #ccc', background: '#111111' }}
     ></svg>
   );
 }
@@ -485,13 +515,13 @@ function GraphViewerECharts({ graphData }) {
  *  - library 可选: "cytoscape" | "d3-force" | "react-force-graph" | "sigma" | "echarts" | "visx"
  */
 
-export default function GraphViewer({ graphData, library = 'cytoscape' }) {
+export default function GraphViewer({ graphData, library = 'd3Force' }) {
   switch (library) {
     case 'cytoscape':
       return <GraphViewerCytoscape graphData={graphData} />;
-    case 'd3':
+    case 'd3Force':
       return <GraphViewerD3Force graphData={graphData} />;
-    case 'force3d':
+    case 'ReactForceGraph3d':
       return <GraphViewerReactForceGraph graphData={graphData} />;
     case 'echarts':
       return <GraphViewerECharts graphData={graphData} />;
