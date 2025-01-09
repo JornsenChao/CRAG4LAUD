@@ -44,9 +44,6 @@ function lightenColor(hex, percent = 0.3) {
   return `#${rr}${gg}${bb}`;
 }
 
-/**
- * 每种 type 都有一个主色
- */
 const TYPE_COLORS = {
   strategy: '#1f77b4', // 蓝
   dependency: '#ff7f0e', // 橙
@@ -54,14 +51,10 @@ const TYPE_COLORS = {
   frameworkDimension: '#9467bd', // 紫
 };
 
-/**
- * 如果没有匹配，就用灰色
- */
 function getTypeColor(type) {
   return TYPE_COLORS[type] || '#cccccc';
 }
-// 一个辅助: 根据距离返回 0~1 的衰减值
-// dist=0 => 1, dist>=maxDist => 0
+
 function fadeByDistance(dist, maxDist = 1000) {
   // method 1
   // const ratio = 1 - dist / maxDist;
@@ -116,6 +109,19 @@ function makeTextSprite(message, { fontsize = 70, color = '#ffffff' } = {}) {
   sprite.scale.set(0.1 * canvas.width, 0.1 * canvas.height, 1);
   return sprite;
 }
+/*************  ✨ Codeium Command ⭐  *************/
+/**
+ * Computes the degree of each node in the given graph data.
+ *
+ * Iterates over the edges in the graph data to count how many times
+ * each node appears as a source or target, incrementing the node's
+ * degree accordingly. Adds a 'degree' property to each node.
+ *
+ * @param {object} graphData - The graph data containing nodes and edges.
+ * @returns {object} The modified graph data with updated node degrees.
+ */
+
+/******  00db961d-3231-4ef2-b199-c93cba28c11f  *******/
 function computeNodeDegrees(graphData) {
   if (!graphData?.nodes || !graphData?.edges) return graphData;
   graphData.nodes.forEach((n) => {
@@ -222,14 +228,17 @@ function GraphViewerD3Force({ graphData }) {
   const svgRef = useRef(null);
   const width = 600;
   const height = 500;
-
+  const containerRef = useRef(null);
   useEffect(() => {
     if (!graphData || !graphData.nodes?.length) return;
-
+    // 拿容器的实际尺寸
+    // const { width, height } = containerRef.current.getBoundingClientRect();
     // 1) 计算节点度
     computeNodeDegrees(graphData);
 
     const svg = d3.select(svgRef.current);
+    // .attr('width', width)
+    // .attr('height', height);
     svg.selectAll('*').remove();
 
     const container = svg.append('g');
@@ -348,12 +357,17 @@ function GraphViewerD3Force({ graphData }) {
   }, [graphData]);
 
   return (
-    <svg
-      ref={svgRef}
-      width={width}
-      height={height}
-      style={{ border: '1px solid #ccc', background: '#111111' }}
-    ></svg>
+    <div
+      ref={containerRef}
+      style={{ width: '100%', height: '800px', position: 'relative' }}
+    >
+      <svg
+        ref={svgRef}
+        width={width}
+        height={height}
+        style={{ border: '1px solid #ccc', background: '#111111' }}
+      ></svg>
+    </div>
   );
 }
 function GraphViewerReactForceGraph({ graphData }) {
@@ -435,7 +449,7 @@ function GraphViewerReactForceGraph({ graphData }) {
   }, [graphData]);
 
   return (
-    <div style={{ width: '100%', height: '600px' }}>
+    <div style={{ width: '100%', height: '800px', border: '1px solid red' }}>
       <ForceGraph3D
         ref={fgRef}
         graphData={{
@@ -500,7 +514,7 @@ function GraphViewerECharts({ graphData }) {
   };
 
   return (
-    <div style={{ width: 600, height: 400 }}>
+    <div style={{ width: '100%', height: '100%' }}>
       <ReactEChartsCore
         echarts={echarts}
         option={option}
@@ -524,7 +538,8 @@ export default function GraphViewer({ graphData, library = 'd3Force' }) {
     case 'ReactForceGraph3d':
       return <GraphViewerReactForceGraph graphData={graphData} />;
     case 'echarts':
-      return <GraphViewerECharts graphData={graphData} />;
+      return <div>This feature is temperaly disabled.</div>;
+    // return <GraphViewerECharts graphData={graphData} />;
     default:
       return <div>No library selected or unsupported: {library}</div>;
   }
