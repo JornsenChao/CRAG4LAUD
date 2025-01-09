@@ -1,84 +1,144 @@
 # Your local RAG chatbot
 
-## Tech stacks
+# ChatRAG
 
-React (https://github.com/facebook/create-react-app)
+ChatRAG is a simple demo project showcasing Retrieval-Augmented Generation (RAG), allowing you to upload PDF/CSV/XLSX files, build vector embeddings, and ask questions with context retrieved from those files. It also includes a ProRAG module to demonstrate table-based strategies and their dependencies, particularly useful for architecture, landscape architecture, and urban planning contexts.
 
-GPT (https://platform.openai.com/docs/api-reference/chat)
+## Features
 
-Langchain (https://python.langchain.com/docs/tutorials/)
+- **QuickTalk**:
+  - Upload or load files (PDF/CSV/XLSX), and ask questions directly.
+  - Preloaded demo files:
+    - demo.pdf: [Retrieval-augmented Generation: Shelby, Lacy, and Renato Villela Mafra Alves Da Silva. Retrieval-Augmented Generation: Empowering Landscape Architects with Data-Driven Design. DE: Wichmann Verlag, 2024. https://doi.org/10.14627/537752025.](https://gispoint.de/fileadmin/user_upload/paper_gis_open/DLA_2024/537752025.pdf)
+    - demo.csv: Data excerpt from [NOAA’s Climate Resilience Toolkit Options Database](https://toolkit.climate.gov/content/options-database).
+- **ProRAG**:
+  - Upload a spreadsheet, map columns to categories (dependencies, references, strategies).
+  - Retrieve relevant rows and generate answers using an LLM.
+  - Especially suitable for “project context – project strategy” data structures, helping architects, landscape architects, and urban planners systematically explore and connect their project information.
+  - Another mode for handling large design codes/local planning plans (PDFs, etc.) is under development.
+  - Build a knowledge graph to visualize dependencies or frameworks (like AIA Framework for Design Excellence).
+- **Graph Visualization**: Uses `react-cytoscapejs`, `react-force-graph`, and `react-speech-recognition` for getting insights of various context, strategies, and how they connect.
 
-Express.js (https://expressjs.com/en/4x/api.html)
+## Technology Stack
 
-## key project structure
+- **Frontend**
+
+  - [React](https://reactjs.org/) (Create React App)
+  - [Ant Design](https://ant.design/) for UI components
+  - [Axios](https://github.com/axios/axios) for HTTP requests
+  - [Cytoscape](https://js.cytoscape.org/), [react-cytoscapejs](https://github.com/plotly/react-cytoscapejs), [react-force-graph](https://github.com/vasturiano/react-force-graph), [D3](https://d3js.org/) & [ECharts](https://echarts.apache.org/) for graph visualization
+  - [React Speech Recognition](https://github.com/JamesBrill/react-speech-recognition) & [speak-tts](https://github.com/tom-s/speak-tts) for speech input/output
+  - [XLSX.js](https://github.com/SheetJS/sheetjs) for spreadsheet parsing
+
+- **Backend**
+
+  - [Node.js](https://nodejs.org/) / [Express.js](https://expressjs.com/) server
+  - [Multer](https://github.com/expressjs/multer) for file uploads
+  - Some modules from [LangChain](https://github.com/hwchase17/langchain) or other embedding logic (in `server` directory)
+  - In-memory vector store for quick RAG demonstration
+
+- **Build & Dev Tools**
+  - [Concurrently](https://github.com/open-cli-tools/concurrently) to run React dev server + Node server together
+  - [React Scripts](https://create-react-app.dev/docs/getting-started) for bundling the frontend
+
+## Getting Started
+
+### 1. Clone the Repository
 
 ```
-project/
-│
-├── server/ (backend)
-│ ├── server.js
-│ └── chat.js
-│ └──  .env
-│
-└── src/ (frontend)
-  ├── App.js
-  └── components/
-    ├── ChatComponent.js
-    ├── FileUploader.js
-    └── RenderQA.js
+git clone https://github.com/JornsenChao/Chat-RAG.git
+cd Chat-RAG
 ```
 
-## frontend & backend
-
-### frontend (React + Ant Design)
-
-通过 FileUploader 组件把 PDF 文件上传到服务器（存到 uploads/ 目录），并在全局用一个 filePath 变量记录最后一次上传的文件路径。
-通过 ChatComponent 组件给用户一个聊天/问答框，并将用户输入的 question 发往服务器接口 /chat。
-RenderQA 组件把所有的提问和回答以一问一答的方式渲染出来。
-App.js 里则把以上三个组件整合在一个页面布局（antd 的 Layout）中。
-
-### backend (Node + Express)
-
-```
-server/
-├── chat.js
-├── package-lock.json
-├── package.json
-├── .env
-├── server.js
-└── uploads
-    └── any-pdf-file-of-your-choice.pdf
-```
-
-server.js 用了 multer 来接收文件上传，并将文件写到 uploads/ 文件夹。
-当用户在前端发出 GET /chat 请求时，会在后端调用自定义的 chat(filePath, question) 函数。
-chat.js 里用 LangChain 做了：PDF 文档加载、文本切分、向量化（OpenAIEmbeddings + MemoryVectorStore），最后通过 RetrievalQAChain 得到对用户问题的回答并返回给前端。
-
-## how to use
+### 2. Install Dependencies
 
 To run this locally, you will run both the server and the frontend, each using different port.
 
-### 1. install at project folder
+#### 1. install at project folder
 
 ```
 npm install
 ```
 
-### 2. install the server
+#### 2. install the server
 
 ```
 cd server
 npm install
 ```
 
-### 3. run the application
+#### 3. run the application, both frontend and server
 
 ```
 cd ..
 npm run dev
 ```
 
-## screenshots
+This will install both frontend and server dependencies specified in the root package.json.
 
-![image](https://github.com/user-attachments/assets/c03a172d-a336-427f-ad65-1d2483c65ae5)
-![image](https://github.com/user-attachments/assets/990416ef-f379-4be3-9723-73b7d99ad9d9)
+Note: The server folder also has its own package.json for backend dependencies. If needed, run cd server && npm install in there as well—but typically this project structure is set up to install everything from the root.
+
+### 3. Environment Variables
+
+Create a .env file in the root or in the server directory for storing sensitive keys (e.g., your_api_key). Example:
+
+```
+OPENAI_API_KEY=sk-xxx
+OPENAI_MODEL=gpt-3.5-turbo
+HUGGINGFACE_API_KEY = hf_xxx
+HUGGINGFACE_MODEL = 'deepseek-ai/DeepSeek-V3-Base'
+```
+
+Make sure you add .env to your .gitignore and never commit real API keys.
+
+### 4. Run in Development
+
+Use the dev script to start both the React dev server (port 3000) and the Node server (port 9999 by default) simultaneously:
+
+```
+npm run dev
+```
+
+The React app is served at http://localhost:3000.
+The Express backend is served at http://localhost:9999.
+
+### 5. Usage
+
+#### QuickTalk Mode:
+
+In the frontend, select a file (PDF/CSV/XLSX) to upload or load a demo.
+Ask questions in the chat UI. The server does a vector-based RAG retrieval and returns an answer.
+
+#### ProRAG Mode:
+
+- Currently tailored for architects, landscape architects, and urban designers to handle structured “project context – project strategy” data.
+- A future mode for handling large design codes and local planning plan PDFs is under development.
+
+1. Upload a spreadsheet, map columns to “dependency”, “strategy”, “reference.”
+2. Build the store, then fill in your project context.
+3. Click “RAG Query” or “RAG Query with CoT” to get an LLM-generated answer referencing your table data.
+4. (Optionally) view or build a graph showing how strategies connect to references, dependencies, or frameworks.
+
+### 6. Build for Production
+
+If you want to bundle the React app for production:
+
+```
+npm run build
+```
+
+This creates a build folder with a production-optimized version of your React app. Typically, you’d then serve those static files using your Node server or a hosting provider.
+
+## Scripts Overview
+
+npm run dev: Runs React + Node server concurrently for local dev.
+npm start: Runs the React app dev server (by default from Create React App).
+npm run server: Changes directory to server and runs Node/Express server with nodemon.
+npm run build: Builds the React frontend into a production build directory.
+npm test: Runs React test runner (Jest/RTL).
+
+# License
+
+No explicit license is currently provided. You may customize or add your own if needed. For usage or distribution, check with the repository owner.
+
+Thanks for checking out ChatRAG! If you have any questions or feedback, feel free to open an issue or contact the repository owner. Enjoy experimenting with the RAG + Graph approach!
