@@ -9,7 +9,7 @@ import React, {
 import CytoscapeComponent from 'react-cytoscapejs';
 import * as d3 from 'd3';
 import * as THREE from 'three';
-import { ForceGraph3D } from 'react-force-graph';
+import ForceGraph3D from 'react-force-graph-3d';
 import ReactEChartsCore from 'echarts-for-react';
 import * as echarts from 'echarts/core';
 import { GraphChart } from 'echarts/charts';
@@ -62,10 +62,28 @@ function getTypeColor(type) {
 }
 // 一个辅助: 根据距离返回 0~1 的衰减值
 // dist=0 => 1, dist>=maxDist => 0
-function fadeByDistance(dist, maxDist = 100) {
-  const ratio = 1 - dist / maxDist;
-  if (ratio < 0) return 0;
-  if (ratio > 1) return 1;
+function fadeByDistance(dist, maxDist = 1000) {
+  // method 1
+  // const ratio = 1 - dist / maxDist;
+  // if (ratio < 0) return 0;
+  // if (ratio > 1) return 1;
+
+  // method 2
+  // let ratio = 1 - dist / maxDist;
+  // ratio = Math.min(Math.max(ratio, 0), 1);
+  // ratio = ratio ** 3;
+
+  // method 3
+  // const ratio = Math.exp(-Math.log(2) * (dist / 500));
+
+  // method 4
+  const d0 = 350; // 中心位置
+  const k = 0.1; // 陡峭度
+  const ratio = 0.2 + 1 / (1 + Math.exp(k * (dist - d0)));
+  console.log(ratio);
+  // if (ratio > 1) return 1;
+  // console.log(dist);
+  // console.log(maxDist);
   return ratio;
 }
 
@@ -98,7 +116,19 @@ function makeTextSprite(message, { fontsize = 70, color = '#ffffff' } = {}) {
   sprite.scale.set(0.1 * canvas.width, 0.1 * canvas.height, 1);
   return sprite;
 }
-
+function computeNodeDegrees(graphData) {
+  if (!graphData?.nodes || !graphData?.edges) return graphData;
+  graphData.nodes.forEach((n) => {
+    n.degree = 0;
+  });
+  graphData.edges.forEach((edge) => {
+    const sNode = graphData.nodes.find((n) => n.id === edge.source);
+    if (sNode) sNode.degree++;
+    const tNode = graphData.nodes.find((n) => n.id === edge.target);
+    if (tNode) tNode.degree++;
+  });
+  return graphData;
+}
 function GraphViewerCytoscape({ graphData }) {
   // 将 graphData 转成 cytoscape 需要的 elements
   // elements: [{ data:{id,label} }, { data:{id,source,target}, }, ...]
@@ -297,56 +327,87 @@ function GraphViewerD3Force({ graphData }) {
   );
 }
 function GraphViewerReactForceGraph({ graphData }) {
-  const fgRef = useRef();
-
-  // 先前的 degree 计算
+  const fgRef = useRef(null);
+  // 在初始化或 graphData 变化后，先计算节点度
   useEffect(() => {
-    if (!graphData?.nodes || !graphData?.edges) return;
-    graphData.nodes.forEach((n) => (n.degree = 0));
-    graphData.edges.forEach((e) => {
-      const s = graphData.nodes.find((n) => n.id === e.source);
-      const t = graphData.nodes.find((n) => n.id === e.target);
-      if (s) s.degree = (s.degree || 0) + 1;
-      if (t) t.degree = (t.degree || 0) + 1;
-    });
+    if (!graphData?.nodes?.length) return;
+    computeNodeDegrees(graphData);
   }, [graphData]);
 
-  // nodeThreeObject
+  // 在初始时给每个 node 做 sphere + text sprite
   const nodeThreeObject = useCallback((node) => {
-    // 1) 获取主色
-    const mainColor = getTypeColor(node.type);
+    const mainColor = getTypeColor(node.type) || '#888888';
+    // const radius = 1.0 + Math.log2((node.degree || 1) + 1);
+    // node.degree 如果没设置，先默认0
+    const deg = node.degree || 0;
+    // console.log(deg);
+    // 例如把 radius = 1 + sqrt(deg) (可随你需要)
+    const radius = (0.1 + Math.sqrt(deg)) * 1;
 
-    // 2) 节点大小
-    const radius = 1 + Math.log2((node.degree || 1) + 1);
-
-    // 3) 创建球体
+    // 创建球体
     const geometry = new THREE.SphereGeometry(radius, 16, 16);
-    // 球体颜色 = mainColor
-    const material = new THREE.MeshLambertMaterial({ color: mainColor });
+    const material = new THREE.MeshLambertMaterial({
+      color: mainColor,
+      transparent: true, // 允许后续动态修改透明度
+      opacity: 1,
+    });
     const sphere = new THREE.Mesh(geometry, material);
 
-    // 4) 加文字: 文字颜色 = lighten(mainColor)
+    // 创建文字 Sprite（贴图）
     if (node.label) {
+      // 文字颜色可做一下加亮
       const textColor = lightenColor(mainColor, 0.5);
-      // 提亮 50%
       const sprite = makeTextSprite(node.label, {
-        fontsize: 60,
+        fontsize: 40,
         color: textColor,
+        align: 'left',
       });
+      // 把文字略微放在球体上方
       sprite.position.set(0, radius + 0.5, 0);
-      sphere.add(sprite);
+      sphere.add(sprite); // 让文字跟随球体
     }
 
     return sphere;
   }, []);
 
+  // 2) 每帧执行：遍历 nodes，对远处节点做 fade
+  const handleEngineTick = useCallback(() => {
+    if (!fgRef.current) return;
+    const fgInstance = fgRef.current;
+
+    // 访问 camera
+    const camera = fgInstance.camera();
+    if (!camera || !graphData?.nodes) return;
+
+    // 直接使用 graphData.nodes，而不是 fgInstance.graphData()
+    graphData.nodes.forEach((node) => {
+      const nodeObj = node.__threeObj;
+      if (!nodeObj) return;
+
+      // 算出节点世界坐标
+      const worldPos = new THREE.Vector3();
+      nodeObj.getWorldPosition(worldPos);
+      const dist = camera.position.distanceTo(worldPos);
+
+      // 根据距离计算透明度
+      const fadeRatio = fadeByDistance(dist, 1000);
+
+      // 设置球体和文字 sprite 的透明度
+      if (nodeObj.material) {
+        nodeObj.material.opacity = fadeRatio;
+      }
+      nodeObj.children.forEach((child) => {
+        if (child.material) {
+          child.material.opacity = fadeRatio;
+        }
+      });
+    });
+  }, [graphData]);
+
   return (
     <div style={{ width: '100%', height: '600px' }}>
       <ForceGraph3D
         ref={fgRef}
-        backgroundColor="#000000"
-        // 不一定要雾化，这里先注释
-        // onInit={(threeObj)=>{ threeObj.scene.fog = new THREE.FogExp2(0x000000, 0.015); }}
         graphData={{
           nodes: graphData.nodes,
           links: graphData.edges.map((e) => ({
@@ -356,15 +417,21 @@ function GraphViewerReactForceGraph({ graphData }) {
           })),
         }}
         nodeThreeObject={nodeThreeObject}
-        linkAutoColorBy={(link) => link.rel}
+        // 1) 让连线是曲线
+        linkCurvature={0.3} // 可以调大/小
+        linkCurveRotation={0}
+        // 2) 边的颜色/箭头
+        linkAutoColorBy="rel"
         linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
-        linkWidth={1.2}
-        linkOpacity={0.9}
-        enableNodeDrag={true}
+        linkOpacity={0.8}
+        linkWidth={1}
+        // 3) 每帧执行, 更新节点明暗
+        onEngineTick={handleEngineTick}
+        // 其他可选
         showNavInfo={false}
-        warmupTicks={100}
-        coolDownTime={2000}
+        backgroundColor="#111111" // 深色背景
+        enableNodeDrag={true}
       />
     </div>
   );
