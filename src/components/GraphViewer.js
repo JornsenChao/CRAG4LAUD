@@ -16,50 +16,89 @@ import { GraphChart } from 'echarts/charts';
 import { TooltipComponent, LegendComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 echarts.use([GraphChart, TooltipComponent, LegendComponent, CanvasRenderer]);
+
 /**
- * GraphViewer
- * @param {object} props.graphData  格式 { nodes: [ {id,label,type}, ... ], edges: [ {source, target, relation}, ... ] }
+ * 辅助：为给定 colorHex 调整亮度 (lighten)
+ * 可以用 HSL、也可以用简单 RGB
  */
+function lightenColor(hex, percent = 0.3) {
+  // parse #RRGGBB
+  let r = parseInt(hex.slice(1, 3), 16);
+  let g = parseInt(hex.slice(3, 5), 16);
+  let b = parseInt(hex.slice(5, 7), 16);
+
+  // lighten
+  r = Math.round(r + (255 - r) * percent);
+  g = Math.round(g + (255 - g) * percent);
+  b = Math.round(b + (255 - b) * percent);
+
+  // clamp
+  if (r > 255) r = 255;
+  if (g > 255) g = 255;
+  if (b > 255) b = 255;
+
+  // to hex
+  const rr = r.toString(16).padStart(2, '0');
+  const gg = g.toString(16).padStart(2, '0');
+  const bb = b.toString(16).padStart(2, '0');
+  return `#${rr}${gg}${bb}`;
+}
+
 /**
- * 一个小函数，用于把文本生成 Sprite:
- * - fontsize: 字体大小
- * - color: 字体颜色
+ * 每种 type 都有一个主色
+ */
+const TYPE_COLORS = {
+  strategy: '#1f77b4', // 蓝
+  dependency: '#ff7f0e', // 橙
+  reference: '#2ca02c', // 绿
+  frameworkDimension: '#9467bd', // 紫
+};
+
+/**
+ * 如果没有匹配，就用灰色
+ */
+function getTypeColor(type) {
+  return TYPE_COLORS[type] || '#cccccc';
+}
+// 一个辅助: 根据距离返回 0~1 的衰减值
+// dist=0 => 1, dist>=maxDist => 0
+function fadeByDistance(dist, maxDist = 100) {
+  const ratio = 1 - dist / maxDist;
+  if (ratio < 0) return 0;
+  if (ratio > 1) return 1;
+  return ratio;
+}
+
+/**
+ * makeTextSprite: 用指定 color 画出文字贴图
  */
 function makeTextSprite(message, { fontsize = 70, color = '#ffffff' } = {}) {
-  // 1) 创建一个离屏 canvas
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const font = `${fontsize}px sans-serif`;
   ctx.font = font;
 
-  // 2) 计算文本尺寸，设置canvas
   const textWidth = ctx.measureText(message).width;
   canvas.width = textWidth;
-  // 给字体预留上下一点空间
   canvas.height = fontsize * 1.2;
 
-  // 3) 再次设定字体 & 绘制
   ctx.font = font;
   ctx.fillStyle = color;
   ctx.fillText(message, 0, fontsize);
 
-  // 4) 贴图
   const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter; // 避免模糊
-
-  // 5) 用 sprite material
+  texture.minFilter = THREE.LinearFilter;
   const spriteMaterial = new THREE.SpriteMaterial({
     map: texture,
     transparent: true,
   });
+
   const sprite = new THREE.Sprite(spriteMaterial);
-
-  // 把sprite的中心移动到左下角
-  // 也可以按需要调节 sprite.scale
+  // scale
   sprite.scale.set(0.1 * canvas.width, 0.1 * canvas.height, 1);
-
   return sprite;
 }
+
 function GraphViewerCytoscape({ graphData }) {
   // 将 graphData 转成 cytoscape 需要的 elements
   // elements: [{ data:{id,label} }, { data:{id,source,target}, }, ...]
@@ -260,40 +299,40 @@ function GraphViewerD3Force({ graphData }) {
 function GraphViewerReactForceGraph({ graphData }) {
   const fgRef = useRef();
 
-  // 1) 如果后端没算 degree，可以在前端算一次
+  // 先前的 degree 计算
   useEffect(() => {
     if (!graphData?.nodes || !graphData?.edges) return;
-    // reset
     graphData.nodes.forEach((n) => (n.degree = 0));
     graphData.edges.forEach((e) => {
-      const src = graphData.nodes.find((n) => n.id === e.source);
-      const tgt = graphData.nodes.find((n) => n.id === e.target);
-      if (src) src.degree = (src.degree || 0) + 1;
-      if (tgt) tgt.degree = (tgt.degree || 0) + 1;
+      const s = graphData.nodes.find((n) => n.id === e.source);
+      const t = graphData.nodes.find((n) => n.id === e.target);
+      if (s) s.degree = (s.degree || 0) + 1;
+      if (t) t.degree = (t.degree || 0) + 1;
     });
   }, [graphData]);
 
-  // 2) nodeThreeObject: 绘制(球体 + 文字sprite)
+  // nodeThreeObject
   const nodeThreeObject = useCallback((node) => {
-    // (a) 做一个球
-    const radius = 1 + Math.log2(node.degree + 1);
-    // 这里用 log2 给高连接度节点更大，但不至于过度膨胀
+    // 1) 获取主色
+    const mainColor = getTypeColor(node.type);
+
+    // 2) 节点大小
+    const radius = 1 + Math.log2((node.degree || 1) + 1);
+
+    // 3) 创建球体
     const geometry = new THREE.SphereGeometry(radius, 16, 16);
-    // 你可根据 node 的 type/degree 设定不同颜色
-    const color = node.color
-      ? node.color
-      : '#' + Math.floor(Math.random() * 16777215).toString(16);
-    const material = new THREE.MeshLambertMaterial({ color });
+    // 球体颜色 = mainColor
+    const material = new THREE.MeshLambertMaterial({ color: mainColor });
     const sphere = new THREE.Mesh(geometry, material);
 
-    // (b) 创建文字 sprite
-    // 如果你要过滤空文本/过长文本，可加逻辑
+    // 4) 加文字: 文字颜色 = lighten(mainColor)
     if (node.label) {
+      const textColor = lightenColor(mainColor, 0.5);
+      // 提亮 50%
       const sprite = makeTextSprite(node.label, {
-        fontsize: 60, // 可调
-        color: '#ffffff', // 字体颜色
+        fontsize: 60,
+        color: textColor,
       });
-      // 把文字放在球体上方
       sprite.position.set(0, radius + 0.5, 0);
       sphere.add(sprite);
     }
@@ -301,17 +340,13 @@ function GraphViewerReactForceGraph({ graphData }) {
     return sphere;
   }, []);
 
-  // 3) linkAutoColorBy => 用 link.relation 的不同值区分颜色
-  //    也可以 linkColor={(link) => ...} 自定义
-  //    这里做最简单的 multi-color
-  // 4) nodeAutoColorBy => 若节点无自定义颜色，也可以
-  //    nodeAutoColorBy="type"
-
   return (
     <div style={{ width: '100%', height: '600px' }}>
       <ForceGraph3D
         ref={fgRef}
-        backgroundColor="#000000" // 黑色背景
+        backgroundColor="#000000"
+        // 不一定要雾化，这里先注释
+        // onInit={(threeObj)=>{ threeObj.scene.fog = new THREE.FogExp2(0x000000, 0.015); }}
         graphData={{
           nodes: graphData.nodes,
           links: graphData.edges.map((e) => ({
@@ -320,21 +355,16 @@ function GraphViewerReactForceGraph({ graphData }) {
             rel: e.relation,
           })),
         }}
-        nodeThreeObject={nodeThreeObject} // 自定义节点
-        linkAutoColorBy={(link) => link.rel} // 根据 relation 上色
+        nodeThreeObject={nodeThreeObject}
+        linkAutoColorBy={(link) => link.rel}
         linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
         linkWidth={1.2}
         linkOpacity={0.9}
-        showNavInfo={false} // 不显示右上角 help
-        // 如果想让节点可拖拽:
         enableNodeDrag={true}
-        // force engine param:
+        showNavInfo={false}
         warmupTicks={100}
-        coolDownTime={3000}
-        // ...
-        onNodeClick={(node) => console.log('Node clicked:', node)}
-        onLinkClick={(link) => console.log('Link clicked:', link)}
+        coolDownTime={2000}
       />
     </div>
   );
@@ -387,6 +417,7 @@ function GraphViewerECharts({ graphData }) {
  *  - 接受 props: { graphData, library }
  *  - library 可选: "cytoscape" | "d3-force" | "react-force-graph" | "sigma" | "echarts" | "visx"
  */
+
 export default function GraphViewer({ graphData, library = 'cytoscape' }) {
   switch (library) {
     case 'cytoscape':
