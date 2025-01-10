@@ -9,7 +9,7 @@ import 'github-markdown-css/github-markdown.css';
 const readmeContent = `
 
 
-***ChatRAG4LandArchUdesign* (RAG Chatbot for landscape architects, arcitects, and urban planners)** is a simple demo project showcasing Retrieval-Augmented Generation (RAG), allowing you to upload PDF/CSV/XLSX files, build vector embeddings, and ask questions with context retrieved from those files. It also includes a ProRAG module to demonstrate table-based strategies and their dependencies, particularly useful for architecture, landscape architecture, and urban planning contexts.
+***CRAG4LAUD* (Chatbot RAG for landscape architects, arcitects, and urban planners)** is a simple demo project showcasing Retrieval-Augmented Generation (RAG), allowing you to upload PDF/CSV/XLSX files, build vector embeddings, and ask questions with context retrieved from those files. It also includes a ProRAG module to demonstrate table-based strategies and their dependencies, particularly useful for architecture, landscape architecture, and urban planning contexts.
 - Currently tailored for architects, landscape architects, and urban designers to handle structured “project context – project strategy” data.
 - A future mode for handling large design codes and local planning plan PDFs is under development.
 ## Features

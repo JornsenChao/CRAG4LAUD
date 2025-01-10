@@ -110,13 +110,20 @@ function App() {
             style={{
               fontSize: '16px',
               fontWeight: 'bold',
-              textAlign: 'center',
+              textAlign: 'left',
+              marginLeft: '20px',
               marginBottom: '16px',
             }}
           >
-            A chatbot for
+            CRAG4LAUD
             <br />
-            landscape &amp; architecture
+            <span style={{ fontSize: '12px', fontWeight: 'normal' }}>
+              Chatbot RAG for
+              <br />
+              landscape architects,
+              <br />
+              arcitects, and urban planners
+            </span>
           </div>
 
           {/* 2) 菜单导航，点击切换不同页面 */}
