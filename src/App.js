@@ -1,5 +1,6 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import {
   Layout,
   Typography,
@@ -18,12 +19,13 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
-import FileSelector from './components/FileSelector';
-import FileUploader from './components/FileUploader';
-import ChatComponent from './components/ChatComponent';
-import RenderQA from './components/RenderQA';
+// import FileSelector from './components/FileSelector';
+// import FileUploader from './components/FileUploader';
+// import ChatComponent from './components/ChatComponent';
+// import RenderQA from './components/RenderQA';
 import ProRAG from './pages/ProRAG';
 import QuickTalkView from './pages/QuickTalkView';
+import About from './pages/About';
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
@@ -73,72 +75,102 @@ function App() {
   };
 
   return (
-    <Layout>
-      {/* Header */}
-      <Header style={{ backgroundColor: '#fff', padding: '0 20px' }}>
-        <Row align="middle" justify="space-between">
-          <Col>
-            <Title level={3} style={{ margin: 0, color: '#4caf50' }}>
-              A chatbot for landscape and architecture folks
-            </Title>
-          </Col>
-          <Col>
-            <Menu
-              mode="horizontal"
-              style={{ marginLeft: 'auto' }}
-              selectedKeys={[viewMode]}
-              onClick={handleMenuClick}
-              items={menuItems}
-            />
-          </Col>
-        </Row>
-      </Header>
-
-      {/* Content */}
+    <Router>
       <Layout>
-        <Content
+        {/* Header */}
+        {/* <Header style={{ backgroundColor: '#fff', padding: '0 20px' }}>
+          <Row align="middle" justify="space-between">
+            <Col>
+              <Title level={3} style={{ margin: 0, color: '#4caf50' }}>
+                A chatbot for landscape and architecture folks
+              </Title>
+            </Col>
+            <Col>
+              <Menu
+                mode="horizontal"
+                style={{ marginLeft: 'auto' }}
+                selectedKeys={[viewMode]}
+                onClick={handleMenuClick}
+                items={menuItems}
+              />
+            </Col>
+          </Row>
+        </Header> */}
+        {/* 左侧侧边栏 */}
+        <Sider
+          width={220}
           style={{
-            height: 'calc(100vh - 64px)', // 减去Header的高度
-            overflow: 'hidden',
-            overflowY: 'auto',
-            padding: '16px', // 给内容一些内边距
-            background: '#f0f2f5', // 灰底
+            background: '#fff',
+            borderRight: '1px solid #ddd',
+            padding: '20px 0',
           }}
         >
-          <Card
+          {/* 1) 标题 / Logo */}
+          <div
             style={{
-              height: '100%',
-              // marginBottom: 20,
-              // overflow: 'hidden', // 不要让 Card 本身出现外滚动条
-              // color: '#4caf50',
-              borderRadius: 8,
-            }}
-            bodyStyle={{
-              padding: '16px',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              marginBottom: '16px',
             }}
           >
-            {viewMode === 'quicktalk' && <QuickTalkView />}
+            A chatbot for
+            <br />
+            landscape &amp; architecture
+          </div>
 
-            {viewMode === 'proRAG' && (
-              <Card
-                className="my-card"
-                title={
-                  <>
-                    <AppstoreOutlined /> ProRAG Mode
-                  </>
-                }
-                bordered={false}
-              >
-                <ProRAG />
-              </Card>
-            )}
-          </Card>
-        </Content>
+          {/* 2) 菜单导航，点击切换不同页面 */}
+          <Menu mode="inline" defaultSelectedKeys={['quicktalk']}>
+            <Menu.Item key="quicktalk">
+              <Link to="/quicktalk">QuickTalk Mode</Link>
+            </Menu.Item>
+            <Menu.Item key="prorag">
+              <Link to="/prorag">ProRAG Mode</Link>
+            </Menu.Item>
+            <Menu.Item key="about">
+              <Link to="/about">About</Link>
+            </Menu.Item>
+          </Menu>
+        </Sider>
+
+        {/* Content */}
+        <Layout>
+          <Content
+            style={{
+              height: 'calc(100vh - 0px)', // 减去Header的高度
+              overflow: 'hidden',
+              overflowY: 'auto',
+              padding: '16px', // 给内容一些内边距
+              background: '#f0f2f5', // 灰底
+            }}
+          >
+            <Card
+              style={{
+                height: '100%',
+                // marginBottom: 20,
+                // overflow: 'hidden', // 不要让 Card 本身出现外滚动条
+                // color: '#4caf50',
+                borderRadius: 8,
+              }}
+              bodyStyle={{
+                padding: '16px',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Routes>
+                {/* 设置一个默认路由，可以跳转到 /quicktalk */}
+                <Route path="/" element={<QuickTalkView />} />
+                <Route path="/quicktalk" element={<QuickTalkView />} />
+                <Route path="/prorag" element={<ProRAG />} />
+                <Route path="/about" element={<About />} />
+              </Routes>
+            </Card>
+          </Content>
+        </Layout>
       </Layout>
-    </Layout>
+    </Router>
   );
 }
 
