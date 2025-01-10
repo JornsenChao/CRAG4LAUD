@@ -78,7 +78,7 @@ const DOMAIN = 'http://localhost:9999';
 //   },
 // };
 
-const FileUploader = ({ onUploadSuccess }) => {
+const FileUploader = ({ onUploadSuccess, draggerStyle = {} }) => {
   const [customFileKey, setCustomFileKey] = useState('');
 
   const customRequest = async ({ file, onSuccess, onError }) => {
@@ -122,13 +122,13 @@ const FileUploader = ({ onUploadSuccess }) => {
 
   return (
     <div style={{ textAlign: 'center' }}>
-      <Input
+      {/* <Input
         style={{ width: 200, marginBottom: 10 }}
         placeholder="Enter file key (optional)"
         value={customFileKey}
         onChange={(e) => setCustomFileKey(e.target.value)}
-      />
-      <Dragger {...propsForDragger}>
+      /> */}
+      <Dragger {...propsForDragger} style={draggerStyle}>
         <p className="ant-upload-drag-icon">
           <InboxOutlined />
         </p>

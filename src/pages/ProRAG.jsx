@@ -11,7 +11,16 @@ import {
   Spin,
   Input,
   Form,
+  Steps,
+  Card,
 } from 'antd';
+import {
+  InboxOutlined,
+  FileDoneOutlined,
+  TableOutlined,
+  DatabaseOutlined,
+  ControlOutlined,
+} from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 
 // 你已有的组件
@@ -48,6 +57,10 @@ const ProRAG = () => {
   const [previewPrompt, setPreviewPrompt] = useState('');
   const [previewVisible, setPreviewVisible] = useState(false);
 
+  // 用于标记当前处于的步骤索引
+  // 0=上传文件，1=映射列，2=构建store，3=填写上下文, 4=查询
+  const [currentStep, setCurrentStep] = useState(0);
+
   // =========== 上传并解析表格  ============= //
   const uploadProps = {
     name: 'file',
@@ -60,9 +73,7 @@ const ProRAG = () => {
         const res = await axios.post(
           `${DOMAIN}/proRAG/uploadFile?fileKey=${file.name}`,
           formData,
-          {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          }
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
         if (res.status === 200) {
           setFileKey(res.data.fileKey);
@@ -70,6 +81,8 @@ const ProRAG = () => {
           message.success('File uploaded. Now map columns!');
           onSuccess(res.data);
           parseColsFrontEnd(file);
+          // 完成上传后，自动跳到下一步
+          setCurrentStep(1);
         } else {
           onError(new Error('Upload failed'));
           message.error('Upload failed');
@@ -128,6 +141,7 @@ const ProRAG = () => {
       if (res.status === 200) {
         message.success('ProRAG store built successfully!');
         setStoreBuilt(true);
+        setCurrentStep(3);
       }
     } catch (err) {
       console.error(err);
@@ -139,11 +153,10 @@ const ProRAG = () => {
 
   // =========== 自定义字段：添加 & 显示 ============= //
   const onAddCustomField = (values) => {
-    // values = { fieldName, fieldValue, fieldType }
     const newField = {
       fieldName: values.fieldName.trim(),
       fieldValue: values.fieldValue.trim(),
-      fieldType: values.fieldType, // dependency | reference | strategy
+      fieldType: values.fieldType,
     };
     setCustomFields((prev) => [...prev, newField]);
     form.resetFields();
@@ -223,20 +236,64 @@ ${customStr || '(none)'}
     setPreviewPrompt(preview);
     setPreviewVisible(true);
   };
+  const steps = [
+    {
+      title: 'Upload Table',
+      icon: <InboxOutlined />,
+      description: 'Upload your CSV/XLSX file',
+    },
+    {
+      title: 'Map Columns',
+      icon: <TableOutlined />,
+      description: 'Specify which columns are dependency/strategy/reference',
+    },
+    {
+      title: 'Build Store',
+      icon: <DatabaseOutlined />,
+      description: 'Generate vector store from mapped columns',
+    },
+    {
+      title: 'Define Context',
+      icon: <ControlOutlined />,
+      description: 'Fill out climate, regulation, project type, etc.',
+    },
+    {
+      title: 'Query & Visualize',
+      icon: <FileDoneOutlined />,
+      description: 'Ask questions & build graph',
+    },
+  ];
 
   return (
     <div style={{ padding: 20 }}>
-      {/* ========== (A) 如果还没 build store，则先展示上传 & column mapper ========== */}
+      <Steps
+        current={currentStep}
+        items={steps.map((s, idx) => ({
+          title: s.title,
+          icon: s.icon,
+          description: s.description,
+        }))}
+        style={{ marginBottom: 30 }}
+      />
+
+      {/* Step 0 & 1: 上传文件 + 映射 */}
       {!storeBuilt && (
         <>
-          <h3>1. Upload Your Tabular File(CSV/Excel)</h3>
-          <Dragger {...uploadProps} style={{ marginBottom: 20 }}>
-            <p>Click or drag file to upload</p>
-          </Dragger>
+          {currentStep === 0 && (
+            <Card
+              title="Step 1: Upload Table File (.CSV / .XLSX)"
+              className="my-card"
+            >
+              <Dragger {...uploadProps} style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 16 }}>
+                  <InboxOutlined /> Click or drag file to upload
+                </p>
+              </Dragger>
+            </Card>
+          )}
 
-          {columns.length > 0 && (
-            <>
-              <h3>2. Map Columns to Category </h3>
+          {currentStep === 1 && (
+            <Card title="Step 2: Map Columns to Category" className="my-card">
               <ColumnMapper
                 columns={columns}
                 columnMap={columnMap}
@@ -244,33 +301,35 @@ ${customStr || '(none)'}
               />
               <Button
                 type="primary"
-                onClick={handleBuildStore}
-                loading={buildingStore}
+                onClick={() => setCurrentStep(2)}
                 style={{ marginTop: 10 }}
               >
-                Build Store
+                Next: Build Store
               </Button>
-            </>
+            </Card>
           )}
         </>
       )}
+      {/* Step 2: 构建 store */}
+      {!storeBuilt && currentStep === 2 && (
+        <Card title="Step 3: Build ProRAG Store" className="my-card">
+          <p>Please confirm columns, then build store.</p>
+          <Button
+            type="primary"
+            loading={buildingStore}
+            onClick={handleBuildStore}
+          >
+            Build Store
+          </Button>
+        </Card>
+      )}
 
-      {/* ========== (B) 如果已经 build store，则展示 DependencySelector + 自定义字段 + RAGQuery ========== */}
-      {storeBuilt && (
-        <>
-          <h2>ProRAG Database is now ready.</h2>
-          <p>
-            Please fill out the project context below. You can mark each field
-            as dependency / reference / strategy. Also you can add custom
-            fields. Then do a RAG query.
-          </p>
-
-          {/* Step 3.1: 填写基础区块( climateRisks, regulations, ... ) */}
-          <h3>3. Provide some project context</h3>
+      {/* Step 3: 填写上下文 */}
+      {storeBuilt && currentStep <= 3 && (
+        <Card title="Step 4: Provide Project Context" className="my-card">
           <DependencySelector onChange={(data) => setDependencyData(data)} />
 
-          {/* Step 3.2: 额外的自定义字段 */}
-          <h4 style={{ marginTop: 20 }}>3.1 Add custom fields (with type)</h4>
+          <h4 style={{ marginTop: 20 }}>Add custom fields (with type)</h4>
           <Form
             layout="inline"
             form={form}
@@ -307,7 +366,6 @@ ${customStr || '(none)'}
             </Form.Item>
           </Form>
 
-          {/* 展示已经添加的自定义字段 */}
           <div style={{ marginBottom: 20 }}>
             {customFields.map((cf, i) => (
               <div key={i} style={{ marginBottom: 4 }}>
@@ -316,10 +374,7 @@ ${customStr || '(none)'}
             ))}
           </div>
 
-          {/* 预览按钮 */}
-          <Button type="default" onClick={handlePreviewQuery}>
-            Preview Selection
-          </Button>
+          <Button onClick={handlePreviewQuery}>Preview Selection</Button>
           <Modal
             title="Preview of Dependencies + Custom Fields"
             visible={previewVisible}
@@ -333,19 +388,23 @@ ${customStr || '(none)'}
             <pre style={{ whiteSpace: 'pre-wrap' }}>{previewPrompt}</pre>
           </Modal>
 
-          {/* 最终查询 */}
-          <h3 style={{ marginTop: 30 }}>4. RAG Query</h3>
-          <p>
-            Use <code>RAGQuery</code> to pass your context (including typed
-            fields) and get strategies from the table.
-          </p>
+          <div style={{ marginTop: 20 }}>
+            <Button type="primary" onClick={() => setCurrentStep(4)}>
+              Next: RAG Query
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Step 4: RAG Query */}
+      {storeBuilt && currentStep >= 4 && (
+        <Card title="Step 5: RAG Query & Visualization" className="my-card">
           <RAGQuery
             fileKey={fileKey}
-            // 将 customFields 也传给后端
             dependencyData={dependencyData}
             customFields={customFields}
           />
-        </>
+        </Card>
       )}
     </div>
   );

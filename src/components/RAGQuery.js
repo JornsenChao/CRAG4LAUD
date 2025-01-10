@@ -273,7 +273,7 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
       <div
         style={{ marginTop: 30, borderTop: '1px solid #ccc', paddingTop: 10 }}
       >
-        <h3>Step 5: Build & View Graph</h3>
+        <h3>Build & View Graph</h3>
         <p>
           Use docs from above result, optionally apply a framework, choose
           library, then build & visualize.
