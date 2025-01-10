@@ -73,19 +73,19 @@ function App() {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout>
       {/* Header */}
       <Header style={{ backgroundColor: '#fff', padding: '0 20px' }}>
         <Row align="middle" justify="space-between">
           <Col>
-            <Title level={3} className="app-header-title">
+            <Title level={3} style={{ margin: 0, color: '#4caf50' }}>
               A chatbot for landscape and architecture folks
             </Title>
           </Col>
           <Col>
             <Menu
               mode="horizontal"
-              defaultSelectedKeys={[viewMode]}
+              style={{ marginLeft: 'auto' }}
               selectedKeys={[viewMode]}
               onClick={handleMenuClick}
               items={menuItems}
@@ -96,54 +96,46 @@ function App() {
 
       {/* Content */}
       <Layout>
-        <Content style={{ margin: '20px auto', width: '95%' }}>
-          {/* 当 viewMode === 'quicktalk' 时 */}
-          {viewMode === 'quicktalk' && (
-            <Card
-              className="my-card"
-              title={
-                <>
-                  <RobotOutlined /> QuickTalk Mode
-                </>
-              }
-              bordered={false}
-            >
-              <FileSelector
-                fileList={fileList}
-                fetchFileList={fetchFileList}
-                activeFile={activeFile}
-                setActiveFile={setActiveFile}
-              />
+        <Content
+          style={{
+            height: 'calc(100vh - 64px)', // 减去Header的高度
+            overflow: 'hidden',
+            overflowY: 'auto',
+            padding: '16px', // 给内容一些内边距
+            background: '#f0f2f5', // 灰底
+          }}
+        >
+          <Card
+            style={{
+              height: '100%',
+              // marginBottom: 20,
+              // overflow: 'hidden', // 不要让 Card 本身出现外滚动条
+              // color: '#4caf50',
+              borderRadius: 8,
+            }}
+            bodyStyle={{
+              padding: '16px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {viewMode === 'quicktalk' && <QuickTalkView />}
 
-              <FileUploader onUploadSuccess={fetchFileList} />
-
-              <div style={{ height: '40vh', overflowY: 'auto', marginTop: 20 }}>
-                <RenderQA conversation={conversation} isLoading={isLoading} />
-              </div>
-
-              <ChatComponent
-                handleResp={handleResp}
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-                activeFile={activeFile}
-              />
-            </Card>
-          )}
-
-          {/* 当 viewMode === 'proRAG' 时 */}
-          {viewMode === 'proRAG' && (
-            <Card
-              className="my-card"
-              title={
-                <>
-                  <AppstoreOutlined /> ProRAG Mode
-                </>
-              }
-              bordered={false}
-            >
-              <ProRAG />
-            </Card>
-          )}
+            {viewMode === 'proRAG' && (
+              <Card
+                className="my-card"
+                title={
+                  <>
+                    <AppstoreOutlined /> ProRAG Mode
+                  </>
+                }
+                bordered={false}
+              >
+                <ProRAG />
+              </Card>
+            )}
+          </Card>
         </Content>
       </Layout>
     </Layout>

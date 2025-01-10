@@ -1,22 +1,21 @@
-// src/pages/QuickTalkView.jsx
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card } from 'antd';
+import { Card, message } from 'antd';
 import axios from 'axios';
-import FileSelector from '../components/FileSelector';
+
 import FileUploader from '../components/FileUploader';
+import FileSelector from '../components/FileSelector';
 import RenderQA from '../components/RenderQA';
 import ChatComponent from '../components/ChatComponent';
 
 const DOMAIN = 'http://localhost:9999';
 
 const QuickTalkView = () => {
-  // 这里放置 QuickTalk 模式使用的状态和逻辑
+  // 这些状态和逻辑与之前相同
   const [conversation, setConversation] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeFile, setActiveFile] = useState('');
   const [fileList, setFileList] = useState([]);
 
-  // 拉取后端已有 fileKey
   const fetchFileList = async () => {
     try {
       const res = await axios.get(`${DOMAIN}/listFiles`);
@@ -25,72 +24,88 @@ const QuickTalkView = () => {
       console.error('Failed to fetch file list:', err);
     }
   };
+
   useEffect(() => {
     fetchFileList();
   }, []);
 
-  // 接收ChatComponent返回的问答
+  // 将 ChatComponent 回传的问答推入 conversation
   const handleResp = (question, answer) => {
     setConversation((prev) => [...prev, { question, answer }]);
   };
 
   return (
+    // 父容器：占满父层空间（通常是 <Content> 里 height:100%）
     <div
       style={{
         display: 'flex',
-        flexDirection: 'column',
-        height: '100%', // 占满Content的高度
-        overflow: 'hidden', // 不产生自身滚动条
+        flexDirection: 'row', // 横向分栏
+        height: '100%',
+        overflow: 'hidden',
+        gap: '16px',
       }}
     >
-      {/* 1) 顶部区域：放文件选择 + 文件上传 */}
-      <div style={{ flex: '0 0 auto' }}>
-        <Row gutter={16}>
-          <Col flex="auto">
-            {/* 卡片：FileSelector */}
-            <Card size="small" style={{ marginBottom: 10 }}>
-              <FileSelector
-                fileList={fileList}
-                fetchFileList={fetchFileList}
-                activeFile={activeFile}
-                setActiveFile={setActiveFile}
-              />
-            </Card>
-          </Col>
-          <Col flex="300px">
-            {/* 卡片：FileUploader，调小Dragger高度 */}
-            <Card size="small" style={{ marginBottom: 10 }}>
-              <FileUploader
-                onUploadSuccess={fetchFileList}
-                draggerStyle={{ height: 20 }} // 额外传入自定义样式
-              />
-            </Card>
-          </Col>
-        </Row>
-      </div>
-
-      {/* 2) 中间区域：聊天记录，内部可滚动 */}
+      {/* 左侧：固定宽度，垂直排布 */}
       <div
         style={{
-          flex: '1 1 auto',
-          marginTop: 10,
-          overflowY: 'auto', // 仅此处滚动，不出现浏览器滚动条
-          background: '#fefefe',
-          borderRadius: 8,
-          padding: 10,
+          width: '360px', // 也可以用百分比，如 '30%'
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
         }}
       >
-        <RenderQA conversation={conversation} isLoading={isLoading} />
+        {/* 上半：FileUploader (Dragger) */}
+        <Card size="small" style={{ flex: '0 0 auto' }}>
+          <FileUploader
+            onUploadSuccess={fetchFileList}
+            // 若需要让 Dragger 更扁：
+            draggerStyle={{ height: 200, border: '1px dashed #999' }}
+          />
+        </Card>
+
+        {/* 下半：FileSelector + DemoLoad */}
+        <Card size="large" style={{ flex: '1 1 auto', overflow: 'auto' }}>
+          <FileSelector
+            fileList={fileList}
+            fetchFileList={fetchFileList}
+            activeFile={activeFile}
+            setActiveFile={setActiveFile}
+          />
+          {/* 你如果有“Load Demo”按钮，也是放这儿 */}
+        </Card>
       </div>
 
-      {/* 3) 底部：聊天输入区 */}
-      <div style={{ flex: '0 0 auto', marginTop: 10 }}>
-        <ChatComponent
-          handleResp={handleResp}
-          isLoading={isLoading}
-          setIsLoading={setIsLoading}
-          activeFile={activeFile}
-        />
+      {/* 右侧：聊天记录+输入框，垂直布局 */}
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+        }}
+      >
+        {/* 聊天记录区：可滚动 */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            backgroundColor: '#fff',
+            borderRadius: 8,
+            padding: '12px',
+          }}
+        >
+          <RenderQA conversation={conversation} isLoading={isLoading} />
+        </div>
+
+        {/* 底部输入区：ChatComponent */}
+        <div style={{ flex: '0 0 auto' }}>
+          <ChatComponent
+            handleResp={handleResp}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+            activeFile={activeFile}
+          />
+        </div>
       </div>
     </div>
   );
