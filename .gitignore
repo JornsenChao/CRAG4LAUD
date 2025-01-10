@@ -9,7 +9,6 @@
 # file for demo
 /demo
 /server/uploads
-/server/demo_docs
 
 # package-lock
 package-lock.json
