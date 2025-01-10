@@ -405,7 +405,7 @@ User's question: ${userQuery}
 `.trim();
 
   // =============== 4. 相似度检索 =============== //
-  const docs = await store.similaritySearch(combinedQuery, 10);
+  const docs = await store.similaritySearch(combinedQuery, 20);
   // const graphData = buildGraphDataFromDocs(docs, selectedFramework);
   // 整理 chunk 作为上下文
   const context = docs

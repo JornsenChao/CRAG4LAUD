@@ -468,8 +468,8 @@ function GraphViewerReactForceGraph({ graphData }) {
         linkAutoColorBy="rel"
         linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
-        linkOpacity={0.8}
-        linkWidth={1}
+        linkOpacity={0.7}
+        linkWidth={0.5}
         // 3) 每帧执行, 更新节点明暗
         onEngineTick={handleEngineTick}
         // 其他可选
