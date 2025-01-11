@@ -1,8 +1,8 @@
 # Your local RAG chatbot
 
-# ChatRAG
+# CREG4LAUD
 
-ChatRAG is a simple demo project showcasing Retrieval-Augmented Generation (RAG), allowing you to upload PDF/CSV/XLSX files, build vector embeddings, and ask questions with context retrieved from those files. It also includes a ProRAG module to demonstrate table-based strategies and their dependencies, particularly useful for architecture, landscape architecture, and urban planning contexts.
+**_CRAG4LAUD_ (Chatbot RAG for landscape architects, arcitects, and urban planners)** is a simple demo project showcasing Retrieval-Augmented Generation (RAG), allowing you to upload PDF/CSV/XLSX files, build vector embeddings, and ask questions with context retrieved from those files. It also includes a ProRAG module to demonstrate table-based strategies and their dependencies, particularly useful for architecture, landscape architecture, and urban planning contexts.
 
 ## Features
 
@@ -46,8 +46,8 @@ ChatRAG is a simple demo project showcasing Retrieval-Augmented Generation (RAG)
 ### 1. Clone the Repository
 
 ```
-git clone https://github.com/JornsenChao/Chat-RAG.git
-cd Chat-RAG
+git clone https://github.com/JornsenChao/CREG4LAUD.git
+cd CREG4LAUD
 ```
 
 ### 2. Install Dependencies
