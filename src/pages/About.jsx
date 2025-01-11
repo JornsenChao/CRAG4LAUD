@@ -8,11 +8,14 @@ import 'github-markdown-css/github-markdown.css';
 
 const readmeContent = `
 
+***CRAG4LAUD* (Chatbot RAG for landscape architects, arcitects, and urban planners)** is a demo project illustrating how Retrieval-Augmented Generation (RAG) works. You can upload PDF, CSV, or XLSX files, generate vector embeddings, and then ask questions that leverage those embeddings to retrieve highly relevant context from your documents—enabling more accurate, grounded responses from the language model (LLM).
 
-***CRAG4LAUD* (Chatbot RAG for landscape architects, arcitects, and urban planners)** is a simple demo project showcasing Retrieval-Augmented Generation (RAG), allowing you to upload PDF/CSV/XLSX files, build vector embeddings, and ask questions with context retrieved from those files. It also includes a ProRAG module to demonstrate table-based strategies and their dependencies, particularly useful for architecture, landscape architecture, and urban planning contexts.
-- Currently tailored for architects, landscape architects, and urban designers to handle structured “project context – project strategy” data.
-- A future mode for handling large design codes and local planning plan PDFs is under development.
-## Features
+In addition, CRAG4LAUD includes a ProRAG module designed for table-based data. It’s particularly helpful in fields such as architecture, landscape architecture, and urban planning, where complex strategies, dependencies, and references often need to be managed in a structured format. ProRAG demonstrates how to organize this information, retrieve it via RAG, and then visualize relationships among strategies, dependencies, and references.
+
+Beyond Q&A, CRAG4LAUD also supports graph visualization using multiple libraries (Cytoscape, D3 Force, React Force Graph, etc.), offering an intuitive way to explore how different pieces of your documents interconnect.
+
+If you’re interested in learning about RAG or want to see how to integrate retrieval and LLM-based generation into your own workflow, feel free to upload documents, build embeddings, and experience the end-to-end RAG process right here.
+
 
 - **QuickTalk**:
   - Upload or load files (PDF/CSV/XLSX), and ask questions directly.
@@ -22,7 +25,7 @@ const readmeContent = `
 - **ProRAG**:
   - Upload a spreadsheet, map columns to categories (dependencies, references, strategies).
   - Retrieve relevant rows and generate answers using an LLM.
-  - Especially suitable for “project context – project strategy” data structures, helping architects, landscape architects, and urban planners systematically explore and connect their project information.
+  - Especially suitable for “project context – project strategy” data structures, helping architects, landscape architects, and urban planners systematically explore and connect their project information. ProRAG module organizes project strategies, dependencies, and references in a clear, table-driven format.
   - Another mode for handling large design codes/local planning plans (PDFs, etc.) is under development.
   - Build a knowledge graph to visualize dependencies or frameworks (like AIA Framework for Design Excellence).
     - Graph Visualization: Uses react-cytoscapejs, react-force-graph, and react-speech-recognition for getting insights of various context, strategies, and how they connect.
@@ -54,7 +57,7 @@ const readmeContent = `
 This tool is developed by Yongqin Zhao (yongqz2@uw.edu), an Master of Science in Design Technology candidate from the University of Washington.
 
 # Contribute to this project?
-https://github.com/JornsenChao/Chat-RAG.git
+https://github.com/JornsenChao/CREG4LAUD
 
 # License
 

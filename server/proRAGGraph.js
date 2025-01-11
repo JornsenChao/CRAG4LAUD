@@ -111,7 +111,14 @@ export async function buildGraphDataFromDocs(docs, frameworkName) {
       });
     }
   });
-
+  console.log(
+    '[proRAGGraph] graph nodes data:',
+    JSON.stringify(nodesMap, null, 2)
+  );
+  console.log(
+    '[proRAGGraph] graph edges data:',
+    JSON.stringify(edges, null, 2)
+  );
   // 5) 返回
   return {
     nodes: Object.values(nodesMap),
