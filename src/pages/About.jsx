@@ -57,7 +57,7 @@ If you’re interested in learning about RAG or want to see how to integrate ret
 This tool is developed by Yongqin Zhao (yongqz2@uw.edu), an Master of Science in Design Technology candidate from the University of Washington.
 
 # Contribute to this project?
-https://github.com/JornsenChao/CREG4LAUD
+https://github.com/JornsenChao/CRAG4LAUD
 
 # License
 

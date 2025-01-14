@@ -1,6 +1,6 @@
 # Your local RAG chatbot
 
-# CREG4LAUD
+# CRAG4LAUD
 
 **_CRAG4LAUD_ (Chatbot RAG for landscape architects, arcitects, and urban planners)** is a simple demo project showcasing Retrieval-Augmented Generation (RAG), allowing you to upload PDF/CSV/XLSX files, build vector embeddings, and ask questions with context retrieved from those files. It also includes a ProRAG module to demonstrate table-based strategies and their dependencies, particularly useful for architecture, landscape architecture, and urban planning contexts.
 
@@ -46,8 +46,8 @@
 ### 1. Clone the Repository
 
 ```
-git clone https://github.com/JornsenChao/CREG4LAUD.git
-cd CREG4LAUD
+git clone https://github.com/JornsenChao/CRAG4LAUD.git
+cd CRAG4LAUD
 ```
 
 ### 2. Install Dependencies
