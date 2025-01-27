@@ -5,9 +5,6 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  padding: 0;
-  /* font-family: 'Nunito', 'Roboto', 'Helvetica', sans-serif; */
-  background-color: #fefefe;
 }
 
 code {
@@ -15,7 +12,6 @@ code {
     monospace;
 }
 
-/* 让 antd 的 primary color 看起来偏绿色系，举例 */
 :root {
   --antd-wave-shadow-color: #4caf50;
 }
@@ -28,19 +24,16 @@ code {
   border-color: #43a047 !important;
 }
 
-/* Header 标题的特定样式 */
 .app-header-title {
   color: #4caf50;
   font-size: 24px;
   margin: 0;
 }
 
-/* 卡片边距 */
 .my-card {
   margin-bottom: 20px;
 }
 
-/* 让表单项更紧凑 */
 .my-form-item {
   margin-bottom: 12px;
 }

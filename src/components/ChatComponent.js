@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Button, Input, Tooltip, message } from 'antd';
+import { Button, Input, message } from 'antd';
 import { AudioOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import SpeechRecognition, {
   useSpeechRecognition,
 } from 'react-speech-recognition';
 import Speech from 'speak-tts';
 
-const { Search } = Input;
 const DOMAIN = 'http://localhost:9999';
 
 const ChatComponent = (props) => {
@@ -21,50 +20,50 @@ const ChatComponent = (props) => {
 
   useEffect(() => {
     const sp = new Speech();
-    sp.init({
-      /*...*/
-    })
+    sp.init({ volume: 1, lang: 'en-GB' })
       .then(() => setSpeech(sp))
-      .catch((e) => console.error('Error init speech:', e));
+      .catch((e) => console.error('Speech init error:', e));
   }, []);
 
   useEffect(() => {
     if (!listening && transcript) {
       onSearch(transcript);
       setIsRecording(false);
+      resetTranscript();
     }
   }, [listening, transcript]);
 
   const onSearch = async (question) => {
     if (!activeFile) {
-      message.warning('No file selected! Please select or load a file first.');
-      return;
+      return message.warning('No file selected');
     }
     setSearchValue('');
     setIsLoading(true);
     try {
-      const response = await axios.get(`${DOMAIN}/chat`, {
+      const res = await axios.get(`${DOMAIN}/chat`, {
         params: { question, fileKey: activeFile },
       });
-      handleResp(question, response.data);
+      handleResp(question, res.data);
       if (isChatModeOn && speech) {
-        speech.speak({ text: response.data, queue: false });
+        speech.speak({ text: res.data, queue: false });
       }
-    } catch (error) {
-      console.error(error);
-      handleResp(question, { error: error.message });
+    } catch (err) {
+      console.error(err);
+      handleResp(question, { error: err.message });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const chatModeClickHandler = () => {
+  const toggleChatMode = () => {
     setIsChatModeOn(!isChatModeOn);
-    setIsRecording(false);
-    SpeechRecognition.stopListening();
+    if (isRecording) {
+      setIsRecording(false);
+      SpeechRecognition.stopListening();
+    }
   };
 
-  const recordingClickHandler = () => {
+  const toggleRecording = () => {
     if (isRecording) {
       setIsRecording(false);
       SpeechRecognition.stopListening();
@@ -76,8 +75,6 @@ const ChatComponent = (props) => {
 
   return (
     <div style={{ display: 'flex', gap: '8px' }}>
-      {/* 输入框 + 提交按钮 + Chat Mode按钮 一行 */}
-      {/* 让输入框尽量宽，用flex: 1 */}
       <Input
         placeholder="Type your question"
         value={searchValue}
@@ -85,8 +82,6 @@ const ChatComponent = (props) => {
         onPressEnter={() => onSearch(searchValue)}
         style={{ flex: 1 }}
       />
-
-      {/* Ask 按钮 */}
       <Button
         type="primary"
         icon={<ThunderboltOutlined />}
@@ -95,23 +90,14 @@ const ChatComponent = (props) => {
       >
         Ask
       </Button>
-
-      {/* Chat Mode按钮 */}
-      <Button
-        type="primary"
-        danger={isChatModeOn}
-        onClick={chatModeClickHandler}
-      >
+      <Button type="primary" danger={isChatModeOn} onClick={toggleChatMode}>
         Chat Mode: {isChatModeOn ? 'On' : 'Off'}
       </Button>
-
-      {/* 如果chatModeOn, 录音按钮 */}
       {isChatModeOn && (
         <Button
-          type="primary"
           icon={<AudioOutlined />}
           danger={isRecording}
-          onClick={recordingClickHandler}
+          onClick={toggleRecording}
         >
           {isRecording ? 'Recording...' : 'Rec'}
         </Button>

@@ -1,62 +1,42 @@
-// src/components/RAGQuery.js
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Input, Select, Button, Modal, message, Spin } from 'antd';
+import { Input, Select, Button, Modal, message } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-
 import GraphViewer from './GraphViewer';
 
-const { TextArea } = Input;
-const { Option } = Select;
 const DOMAIN = 'http://localhost:9999';
 
 const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
-  // 用户输入的问题
   const [userQuery, setUserQuery] = useState('');
   const [language, setLanguage] = useState('en');
-
-  // 加载状态
   const [loadingNormal, setLoadingNormal] = useState(false);
   const [loadingCoT, setLoadingCoT] = useState(false);
 
-  // LLM 找到的文档
-  const [docs, setDocs] = useState([]);
-
-  // 普通RAG回答
   const [answerNormal, setAnswerNormal] = useState('');
   const [promptNormal, setPromptNormal] = useState('');
+  const [docs, setDocs] = useState([]);
 
-  // 带CoT的RAG回答
   const [answerCoT, setAnswerCoT] = useState('');
   const [promptCoT, setPromptCoT] = useState('');
 
-  // 管理 graph
   const [graphData, setGraphData] = useState(null);
   const [selectedLibrary, setSelectedLibrary] = useState('cytoscape');
   const [selectedFramework, setSelectedFramework] = useState('');
-  // 控制Modal
+
   const [promptModalVisible, setPromptModalVisible] = useState(false);
   const [promptModalContent, setPromptModalContent] = useState('');
 
-  // const [graphData, setGraphData] = useState(null);
-  // const [selectedFramework, setSelectedFramework] = useState('');
-
-  // 点击按钮：普通 RAG Query
   const handleQueryNormal = async () => {
     if (!fileKey) {
-      return message.error('No fileKey, please build store first.');
+      return message.error('No file selected');
     }
     if (!userQuery.trim()) {
-      // 如果用户没输入任何文字
-      message.warning('Please type something in the query box!');
-      return; // 不执行请求
+      return message.warning('Type something');
     }
     setLoadingNormal(true);
     setAnswerNormal('');
     setPromptNormal('');
-    // setGraphData(null);
-
     try {
       const res = await axios.post(`${DOMAIN}/proRAG/query`, {
         fileKey,
@@ -64,62 +44,28 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
         userQuery,
         language,
         customFields,
-        // selectedFramework,
       });
-      if (res.status === 200) {
-        setAnswerNormal(res.data.answer);
-        setPromptNormal(res.data.usedPrompt);
-        setDocs(res.data.docs || []);
-        // if (res.data.graphData && res.data.graphData.nodes) {
-        //   setGraphData(res.data.graphData);
-        //   console.log(res.data.graphData);
-        // } else {
-        //   setGraphData({ nodes: [], edges: [] });
-        // }
-      }
+      setAnswerNormal(res.data.answer);
+      setPromptNormal(res.data.usedPrompt);
+      setDocs(res.data.docs || []);
     } catch (err) {
       console.error(err);
-      message.error('Query (normal) error');
+      message.error('Query normal error');
     } finally {
       setLoadingNormal(false);
     }
   };
 
-  // === View in Graph (第 5 步) ===
-  const handleViewInGraph = async () => {
-    if (!docs || docs.length === 0) {
-      message.warning('No docs to visualize. Please do RAG query first.');
-      return;
-    }
-    try {
-      const body = {
-        docs,
-        frameworkName: selectedFramework, // e.g. "AIA" or ""
-      };
-      const res = await axios.post(`${DOMAIN}/proRAG/buildGraph`, body);
-      // { graphData: {nodes, edges} }
-      setGraphData(res.data.graphData);
-      message.success('Graph built!');
-    } catch (err) {
-      console.error(err);
-      message.error('Graph build error');
-    }
-  };
-
-  // 点击按钮：RAG Query with CoT
   const handleQueryCoT = async () => {
     if (!fileKey) {
-      return message.error('No fileKey, please build store first.');
+      return message.error('No file selected');
     }
     if (!userQuery.trim()) {
-      // 如果用户没输入任何文字
-      message.warning('Please type something in the query box!');
-      return; // 不执行请求
+      return message.warning('Type something');
     }
     setLoadingCoT(true);
     setAnswerCoT('');
     setPromptCoT('');
-
     try {
       const res = await axios.post(`${DOMAIN}/proRAG/queryCoT`, {
         fileKey,
@@ -128,65 +74,61 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
         language,
         customFields,
       });
-      if (res.status === 200) {
-        setAnswerCoT(res.data.answer);
-        setPromptCoT(res.data.usedPrompt);
-      }
+      setAnswerCoT(res.data.answer);
+      setPromptCoT(res.data.usedPrompt);
     } catch (err) {
       console.error(err);
-      message.error('Query (CoT) error');
+      message.error('Query CoT error');
     } finally {
       setLoadingCoT(false);
     }
   };
 
-  // 显示 Prompt 的 modal
-  const showPromptModal = (which) => {
-    if (which === 'normal') {
-      setPromptModalContent(promptNormal);
-    } else {
-      setPromptModalContent(promptCoT);
+  const handleViewInGraph = async () => {
+    if (!docs || docs.length === 0) {
+      return message.warning('No docs to visualize');
     }
+    try {
+      const res = await axios.post(`${DOMAIN}/proRAG/buildGraph`, {
+        docs,
+        frameworkName: selectedFramework,
+      });
+      setGraphData(res.data.graphData);
+      message.success('Graph built');
+    } catch (err) {
+      console.error(err);
+      message.error('Graph build error');
+    }
+  };
+
+  const showPromptModal = (which) => {
+    if (which === 'normal') setPromptModalContent(promptNormal);
+    else setPromptModalContent(promptCoT);
     setPromptModalVisible(true);
   };
 
   return (
     <div>
       <div style={{ marginBottom: 10 }}>
-        <p>Enter your question or requests here:</p>
-        <TextArea
+        <Input.TextArea
           rows={3}
           value={userQuery}
           onChange={(e) => setUserQuery(e.target.value)}
+          placeholder="Type your question..."
         />
       </div>
-
       <div style={{ marginBottom: 10 }}>
         <span>Answer language: </span>
         <Select
-          style={{ width: 120 }}
           value={language}
           onChange={(val) => setLanguage(val)}
+          style={{ width: 120 }}
         >
-          <Option value="en">English</Option>
-          <Option value="zh">中文</Option>
-          <Option value="es">Español</Option>
+          <Select.Option value="en">English</Select.Option>
+          <Select.Option value="zh">中文</Select.Option>
+          <Select.Option value="es">Español</Select.Option>
         </Select>
       </div>
-      {/* 这里让用户可选 framework */}
-      {/* <div style={{ marginBottom: 10 }}>
-        <span>Framework: </span>
-        <Select
-          style={{ width: 180 }}
-          value={selectedFramework}
-          onChange={(val) => setSelectedFramework(val)}
-        >
-          <Option value="">(none)</Option>
-          <Option value="AIA">AIA Framework for Design Excellence</Option>
-        </Select>
-      </div> */}
-
-      {/* 两个按钮 */}
       <Button
         type="primary"
         onClick={handleQueryNormal}
@@ -195,18 +137,16 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
         RAG Query
       </Button>
       <Button
-        type="default"
+        style={{ marginLeft: 8 }}
         onClick={handleQueryCoT}
         loading={loadingCoT}
-        style={{ marginLeft: 10 }}
       >
-        RAG Query with CoT
+        RAG Query + CoT
       </Button>
 
-      {/* 普通回答 */}
       {answerNormal && (
         <div style={{ marginTop: 20 }}>
-          <h4>Normal RAG Answer:</h4>
+          <h4>Normal RAG Answer</h4>
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {answerNormal}
           </ReactMarkdown>
@@ -218,11 +158,9 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
           </Button>
         </div>
       )}
-
-      {/* 带CoT回答 */}
       {answerCoT && (
         <div style={{ marginTop: 20 }}>
-          <h4>RAG + Chain of Thought Answer:</h4>
+          <h4>CoT RAG Answer</h4>
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{answerCoT}</ReactMarkdown>
           <Button
             style={{ marginTop: 8 }}
@@ -232,87 +170,45 @@ const RAGQuery = ({ fileKey, dependencyData, customFields = [] }) => {
           </Button>
         </div>
       )}
-      {/* {graphData ? (
+      {/* Graph builder */}
+      <div
+        style={{ marginTop: 20, borderTop: '1px solid #ccc', paddingTop: 10 }}
+      >
+        <h3>Build & View Graph from retrieved docs</h3>
+        <Select
+          style={{ width: 200, marginRight: 10 }}
+          value={selectedFramework}
+          onChange={(val) => setSelectedFramework(val)}
+        >
+          <Select.Option value="">(none)</Select.Option>
+          <Select.Option value="AIA">AIA Framework</Select.Option>
+        </Select>
+        <Select
+          style={{ width: 200, marginRight: 10 }}
+          value={selectedLibrary}
+          onChange={(val) => setSelectedLibrary(val)}
+        >
+          <Select.Option value="cytoscape">Cytoscape</Select.Option>
+          <Select.Option value="d3Force">D3 Force</Select.Option>
+          <Select.Option value="ReactForceGraph3d">3D ForceGraph</Select.Option>
+        </Select>
+        <Button onClick={handleViewInGraph}>View in Graph</Button>
+      </div>
+      {graphData && (
         <div style={{ marginTop: 20 }}>
-          <h4>Knowledge Graph (Cytoscape)</h4>
-          <GraphViewer graphData={graphData} />
+          <GraphViewer library={selectedLibrary} graphData={graphData} />
         </div>
-      ) : null} */}
-      {/* 查看Prompt的弹窗 */}
+      )}
+
       <Modal
-        title="Final Prompt Sent to LLM"
+        title="Final Prompt"
         visible={promptModalVisible}
         onCancel={() => setPromptModalVisible(false)}
         footer={null}
         width={800}
       >
-        <pre
-          style={{
-            whiteSpace: 'pre-wrap',
-            maxHeight: 400,
-            overflowY: 'auto',
-            background: '#f9f9f9',
-            padding: 10,
-          }}
-        >
-          {promptModalContent}
-        </pre>
+        <pre style={{ whiteSpace: 'pre-wrap' }}>{promptModalContent}</pre>
       </Modal>
-
-      {/* <Button style={{ marginTop: 20 }} onClick={handleViewInGraph}>
-        View in Graph (based on docs found in RAG query step)
-      </Button>
-
-      {graphData && (
-        <div style={{ marginTop: 20 }}>
-          <h4>Knowledge Graph:</h4>
-          <GraphViewer library="cytoscape" graphData={graphData} />
-        </div>
-      )} */}
-      {/* step 5 */}
-      <div
-        style={{ marginTop: 30, borderTop: '1px solid #ccc', paddingTop: 10 }}
-      >
-        <h3>Build & View Graph</h3>
-        <p>
-          Use docs from above result, optionally apply a framework, choose
-          library, then build & visualize.
-        </p>
-
-        <div style={{ marginBottom: 10 }}>
-          <span>Framework: </span>
-          <Select
-            style={{ width: 180 }}
-            value={selectedFramework}
-            onChange={(val) => setSelectedFramework(val)}
-          >
-            <Option value="">(none)</Option>
-            <Option value="AIA">AIA Framework</Option>
-          </Select>
-        </div>
-
-        <div style={{ marginBottom: 10 }}>
-          <span>Graph Library: </span>
-          <Select
-            style={{ width: 180 }}
-            value={selectedLibrary}
-            onChange={(val) => setSelectedLibrary(val)}
-          >
-            <Option value="cytoscape">Cytoscape</Option>
-            <option value="d3Force">D3 Force</option>
-            <option value="ReactForceGraph3d">React Force Graph (3D)</option>
-            <option value="echarts">ECharts</option>
-          </Select>
-        </div>
-
-        <Button onClick={handleViewInGraph}>View in Graph</Button>
-
-        {graphData && (
-          <div style={{ marginTop: 20 }}>
-            <GraphViewer library={selectedLibrary} graphData={graphData} />
-          </div>
-        )}
-      </div>
     </div>
   );
 };
